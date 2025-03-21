@@ -10,18 +10,29 @@
     "test": "jest"
   },
   "dependencies": {
+    "@react-native-async-storage/async-storage": "^1.24.0",
+    "@react-native-firebase/app": "^21.12.0",
+    "@react-native-firebase/auth": "^21.12.0",
+    "@react-native-firebase/firestore": "^21.12.0",
+    "@react-native-google-signin/google-signin": "^13.2.0",
     "@react-native-picker/picker": "^2.11.0",
     "@react-navigation/native": "^7.0.15",
     "@react-navigation/stack": "^7.1.2",
+    "dotenv": "^16.4.7",
+    "emailjs-com": "^3.2.0",
+    "fast-text-encoding": "^1.0.6",
     "react": "19.0.0",
     "react-native": "0.78.0",
+    "react-native-base64": "^0.2.1",
     "react-native-ble-advertiser": "^0.0.17",
     "react-native-ble-manager": "^12.1.4",
     "react-native-ble-plx": "^3.5.0",
     "react-native-gesture-handler": "^2.24.0",
     "react-native-reanimated": "^3.17.1",
     "react-native-safe-area-context": "^5.3.0",
-    "react-native-screens": "^4.9.1"
+    "react-native-screens": "^4.9.1",
+    "react-native-vector-icons": "^10.2.0",
+    "util": "^0.12.5"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

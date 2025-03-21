@@ -1,22 +1,21 @@
 import { BleManager } from 'react-native-ble-plx';
 import BLEAdvertiser from 'react-native-ble-advertiser';
-import { PermissionsAndroid, Platform, NativeModules } from 'react-native';
+import { PermissionsAndroid, Platform } from 'react-native';
+import {Buffer} from 'buffer';
 
 let isAdvertising = false;
 
-const SERVICE_UUID = '0000ABCD-0000-1000-8000-00805F9B34FB'; // Replace with your UUID
-const COMPANY_ID = 0x1234; // Replace with your company ID
+const SERVICE_UUID = '0000ABCD-0000-1000-8000-00805F9B34FB';
 
 const manager = new BleManager();
 
-// 🔹 Request all Bluetooth permissions (for Android 12+)
 const requestBluetoothPermissions = async () => {
   if (Platform.OS === 'android') {
     const permissions = [
       PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
       PermissionsAndroid.PERMISSIONS.BLUETOOTH_ADVERTISE,
       PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
-      PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION, // Needed for BLE scanning
+      PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
     ];
 
     const granted = await PermissionsAndroid.requestMultiple(permissions);
@@ -49,27 +48,23 @@ const isBluetoothEnabled = async () => {
   }
 };
 
-// Start BLE Advertising
-const startBluetoothAdvertising = async (sessionData) => {
+const startBluetoothAdvertising = async (classData) => {
   try {
     if (isAdvertising) {
       console.log('Already broadcasting!');
       return true;
     }
 
-    const { courseBatchName, teacher, classSize } = sessionData;
+    const { course, batch, teacher, classSize } = classData;
 
-    // Prepare the broadcast message
-    const broadcastMessage = `${courseBatchName}:${teacher}:${classSize}`;
-    console.log('BLE Advertising Message:', broadcastMessage);
+    const broadcastMessage = `${course}|${batch}|${teacher}|${classSize}`;
+    const encodedData = customEncode(broadcastMessage);
 
-    // Convert the message to a byte array
-    const encodedData = broadcastMessage.split('').map((c) => c.charCodeAt(0));
+    console.log('broadcast message:', broadcastMessage);
+    console.log('encoded data', encodedData);
 
-    // Set the company ID (optional, but recommended for custom data)
-    BLEAdvertiser.setCompanyId(COMPANY_ID);
+    BLEAdvertiser.setCompanyId(0x0001);
 
-    // Start advertising
     await BLEAdvertiser.broadcast(SERVICE_UUID, encodedData, {})
       .then(() => {
         console.log('✅ BLE Broadcasting Started Successfully');
@@ -79,9 +74,6 @@ const startBluetoothAdvertising = async (sessionData) => {
         console.error('❌ BLE Broadcasting Error:', error);
       });
 
-    // Stop advertising after seconds (optional)
-    setTimeout(stopBluetoothAdvertising, 60000);
-
     return true;
   } catch (error) {
     console.error('Error starting Bluetooth advertising:', error);
@@ -89,7 +81,6 @@ const startBluetoothAdvertising = async (sessionData) => {
   }
 };
 
-// Stop BLE Advertising
 const stopBluetoothAdvertising = async () => {
   try {
     if (!isAdvertising) {
@@ -111,34 +102,48 @@ const stopBluetoothAdvertising = async () => {
   }
 };
 
+const startBluetoothScanning = async (onDeviceFound) => {
+  console.log('Scanning started');
 
-const startBluetoothScanning = async () => {
-  console.log('scanning started');
   manager.startDeviceScan(null, null, (error, device) => {
     if (error) {
       console.error('Scan error:', error);
       return;
     }
-    // Check for manufacturer data
-    if (device?.manufacturerData) {
-      const rawData = device.manufacturerData;
-      const decodedData = String.fromCharCode(...rawData); // Decode byte array to string
-      const newDevice = {
-        id: device.id,
-        name: device.name || 'Unknown',
-        rssi: device.rssi,
-        data: decodedData,
-      };
-      console.log(newDevice);
+
+    if(device?.serviceUUIDs?.includes(SERVICE_UUID.toLowerCase())) {
+      console.log(device);
+      const encodedData = device.manufacturerData;
+      if (!encodedData) {return;}
+      const decodedData = customDecode(encodedData);
+      console.log(decodedData);
+      const [course, batch, teacher, classSize] = decodedData.split('|');
+      const classData = { course, batch, teacher, classSize, rssi: device.rssi };
+      console.log('Decoded Message : ' ,classData);
+      onDeviceFound(classData);
+      manager.stopDeviceScan();
     }
   });
 };
 
-
-// Stop Bluetooth Scanning
-const stopBluetoothScanning = async (listener) => {
+const stopBluetoothScanning = async () => {
   manager.stopDeviceScan();
   console.log('Scanning stopped');
 };
 
-export { isBluetoothEnabled, startBluetoothAdvertising, stopBluetoothAdvertising, startBluetoothScanning, stopBluetoothScanning };
+const customEncode = (str) => {
+  return Array.from(str).map(char => char.charCodeAt(0));
+};
+
+const customDecode = (encodedStr) => {
+  const base64String = Buffer.from(encodedStr, 'base64').toString('utf-8'); // Decode Base64
+  return base64String.replace(/^\u0001\u0000/, '');
+};
+
+export {
+  isBluetoothEnabled,
+  startBluetoothAdvertising,
+  stopBluetoothAdvertising,
+  startBluetoothScanning,
+  stopBluetoothScanning,
+};

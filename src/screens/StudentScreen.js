@@ -14,9 +14,8 @@ const StudentScreen = () => {
     }
 
     if (!isScanning) {
-      startBluetoothScanning((sessionID) => {
-        console.log('Found Attendance Session:', sessionID);
-        Alert.alert('Attendance Session Found', `Course & Batch: ${sessionID}`);
+      startBluetoothScanning((classData) => {
+        Alert.alert('Data Found', JSON.stringify(classData, null, 2));
       });
       setIsScanning(true);
     } else {

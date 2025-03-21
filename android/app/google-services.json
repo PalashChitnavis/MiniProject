@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "880372801785",
+    "project_id": "palash-miniproject",
+    "storage_bucket": "palash-miniproject.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:880372801785:android:978808f46bf94e9e338228",
+        "android_client_info": {
+          "package_name": "com.miniproject"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCYBF4cmSEgYiTFZh2_SdtCixu96jjVjXQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

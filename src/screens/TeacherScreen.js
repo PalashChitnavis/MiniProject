@@ -6,13 +6,15 @@ import { Picker } from '@react-native-picker/picker';
 import { isBluetoothEnabled, startBluetoothAdvertising, stopBluetoothAdvertising } from '../services/BluetoothService';
 
 const TeacherScreen = () => {
-  const [courseBatchName, setCourseBatchName] = useState('');
+  const [course, setCourse] = useState('');
+  const [batch, setBatch] = useState('');
+  const [teacher, setTeacher] = useState('');
   const [classSize, setClassSize] = useState('small');
   const [isBroadcasting, setIsBroadcasting] = useState(false);
   const [bluetoothWarning, setBluetoothWarning] = useState(false);
 
   const handleAttendancePress = async () => {
-    if (!courseBatchName) {
+    if (!course && !batch && !teacher) {
       setBluetoothWarning(true);
       return;
     }
@@ -25,15 +27,15 @@ const TeacherScreen = () => {
     }
 
     if (!isBroadcasting) {
-      // ✅ Prepare structured session data
-      const sessionData = {
-        courseBatchName: courseBatchName,
-        teacher: 'AT', // Assume the teacher is always Dr. John Doe
-        classSize: classSize.charAt(0).toUpperCase(), // "small" -> "S", "medium" -> "M", "large" -> "L"
+      const classData = {
+        course: course,
+        batch: batch,
+        teacher: teacher,
+        classSize: classSize.charAt(0).toUpperCase(),
       };
 
-      console.log('Generated Session Data:', sessionData);
-      const started = await startBluetoothAdvertising(sessionData);
+      console.log('Generated Session Data:', classData);
+      const started = await startBluetoothAdvertising(classData);
 
       if (started) {
         setIsBroadcasting(true);
@@ -41,8 +43,7 @@ const TeacherScreen = () => {
         Alert.alert('Error', 'Failed to start Bluetooth broadcasting.');
       }
     } else {
-      // Stop broadcasting
-      stopBluetoothAdvertising();
+      await stopBluetoothAdvertising();
       setIsBroadcasting(false);
     }
   };
@@ -50,10 +51,24 @@ const TeacherScreen = () => {
   return (
     <View style={styles.container}>
       <TeacherAttendanceFormInput
-        label="Course and Batch Name"
-        value={courseBatchName}
-        onChangeText={setCourseBatchName}
-        placeholder="Enter course and batch"
+        label="Course Name"
+        value={course}
+        onChangeText={setCourse}
+        placeholder="Enter course name"
+      />
+
+      <TeacherAttendanceFormInput
+        label="Batch Name"
+        value={batch}
+        onChangeText={setBatch}
+        placeholder="Enter batch name"
+      />
+
+      <TeacherAttendanceFormInput
+        label="Teacher Name"
+        value={teacher}
+        onChangeText={setTeacher}
+        placeholder="Enter teacher name"
       />
 
       {/* 🔹 Class Size Picker */}

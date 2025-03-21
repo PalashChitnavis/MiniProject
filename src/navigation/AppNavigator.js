@@ -1,22 +1,22 @@
 import React from 'react';
-import { createStackNavigator } from '@react-navigation/stack';
 import { NavigationContainer } from '@react-navigation/native';
+import { createStackNavigator } from '@react-navigation/stack';
 import HomeScreen from '../screens/HomeScreen';
-import TeacherScreen from '../screens/TeacherScreen';
 import StudentScreen from '../screens/StudentScreen';
+import TeacherScreen from '../screens/TeacherScreen';
 
 const Stack = createStackNavigator();
 
 const AppNavigator = () => {
-  return (
-    <NavigationContainer>
-      <Stack.Navigator>
-        <Stack.Screen name="Home" component={HomeScreen} />
-        <Stack.Screen name="Teacher" component={TeacherScreen} />
-        <Stack.Screen name="Student" component={StudentScreen} />
-      </Stack.Navigator>
-    </NavigationContainer>
-  );
+    return (
+        <NavigationContainer>
+            <Stack.Navigator initialRouteName="Home">
+                <Stack.Screen name="Home" component={HomeScreen} />
+                <Stack.Screen name="StudentScreen" component={StudentScreen} />
+                <Stack.Screen name="TeacherScreen" component={TeacherScreen} />
+            </Stack.Navigator>
+        </NavigationContainer>
+    );
 };
 
 export default AppNavigator;
