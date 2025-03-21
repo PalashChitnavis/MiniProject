@@ -1,4 +1,4 @@
-package com.miniproject
+package com.miniprojectattendance
 
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate

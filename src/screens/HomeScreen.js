@@ -12,6 +12,10 @@ const HomeScreen = ({ navigation }) => {
                 title="Teacher"
                 onPress={() => navigation.navigate('TeacherScreen')}
             />
+            <Button
+                title="Login"
+                onPress={() => navigation.navigate('LoginScreen')}
+            />
         </View>
     );
 };

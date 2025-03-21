@@ -1,3 +1,4 @@
+/* eslint-disable no-control-regex */
 import { BleManager } from 'react-native-ble-plx';
 import BLEAdvertiser from 'react-native-ble-advertiser';
 import { PermissionsAndroid, Platform } from 'react-native';

@@ -12,7 +12,12 @@
           "package_name": "com.miniproject"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "880372801785-4sg3v286qirnutvglcer1acpq5ni4d0n.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyCYBF4cmSEgYiTFZh2_SdtCixu96jjVjXQ"
@@ -20,7 +25,49 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "880372801785-4sg3v286qirnutvglcer1acpq5ni4d0n.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:880372801785:android:3d223cf24439d318338228",
+        "android_client_info": {
+          "package_name": "com.miniprojectattendance"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "880372801785-enlchld75ms33c9gvbh7vnvengik9esk.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.miniprojectattendance",
+            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
+          }
+        },
+        {
+          "client_id": "880372801785-4sg3v286qirnutvglcer1acpq5ni4d0n.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCYBF4cmSEgYiTFZh2_SdtCixu96jjVjXQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "880372801785-4sg3v286qirnutvglcer1acpq5ni4d0n.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
