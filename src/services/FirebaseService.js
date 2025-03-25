@@ -40,57 +40,56 @@ export const googleLogin = async () => {
     await GoogleSignin.hasPlayServices({showPlayServicesUpdateDialog: true});
 
     // 2. Force account picker to show every time
-    await GoogleSignin.signOut(); // Sign out first to force account selection
+    await GoogleSignin.signOut();
     const response = await GoogleSignin.signIn();
-
     const {user} = response.data;
 
-    console.log(response);
-
-    // 3. Now verify the email domain
+    // 3. Verify email domain
     if (!user.email.endsWith('@iiitm.ac.in')) {
-      await GoogleSignin.signOut(); // Clean up
+      await GoogleSignin.signOut();
       throw new Error('Only iiitm.ac.in emails are allowed');
     }
 
-    // 5. Process user data
+    // 4. Process user data
     const emailPrefix = user.email.split('@')[0];
     const isStudent = /\d/.test(emailPrefix);
     let classGroup = null;
 
     if (isStudent) {
       const yearMatch = emailPrefix.match(/^(\d{4})_/);
-      classGroup = yearMatch?.[1] ?? 'Unknown';
+      if (!yearMatch) {
+        throw new Error('Invalid student email format (should be YYYY_ABC123)');
+      }
+      classGroup = yearMatch[1];
     }
 
+    // 5. Prepare user data
     const userData = {
-      id: isStudent ? emailPrefix : firebaseUser.uid,
-      name: user.name || firebaseUser.displayName,
+      id: isStudent ? emailPrefix : `staff_${user.id}`, // Unique ID for all users
+      name: user.name || 'No Name Provided',
       email: user.email,
+      profilePic: user.photo || null,
+      type: isStudent ? 'student' : 'teacher',
       ...(isStudent && {class: classGroup}),
       subjects: {},
       lastActive: Date.now(),
+      createdAt: Date.now(),
     };
 
-    const path = isStudent
-      ? `students/${emailPrefix}`
-      : `teachers/${firebaseUser.uid}`;
-    await set(ref(database, path), userData);
+    // 6. Store in single users table
+    await set(ref(database, `users/${userData.id}`), userData);
 
-    return {
-      ...userData,
-      role: isStudent ? 'student' : 'teacher',
-    };
+    return userData;
   } catch (error) {
-    console.error('Google login error:', error);
+    console.error('Login error:', error);
 
-    // Handle specific errors
+    // Specific error handling
     if (error.code === statusCodes.SIGN_IN_CANCELLED) {
-      throw new Error('Sign in was cancelled');
+      throw new Error('Login cancelled');
     } else if (error.code === statusCodes.IN_PROGRESS) {
-      throw new Error('Sign in is already in progress');
+      throw new Error('Login in progress');
     } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
-      throw new Error('Google Play services not available');
+      throw new Error('Google Play services required');
     } else {
       throw error;
     }
