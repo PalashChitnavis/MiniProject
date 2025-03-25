@@ -1,97 +1,79 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, Alert } from 'react-native';
-import ButtonComponent from '../components/ButtonComponent';
-import TeacherAttendanceFormInput from '../components/TeacherAttendanceFormInput';
-import { Picker } from '@react-native-picker/picker';
-import { isBluetoothEnabled, startBluetoothAdvertising, stopBluetoothAdvertising } from '../services/BluetoothService';
+import React from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Dimensions,
+  Image,
+} from 'react-native';
 
-const TeacherScreen = () => {
-  const [course, setCourse] = useState('');
-  const [batch, setBatch] = useState('');
-  const [teacher, setTeacher] = useState('');
-  const [classSize, setClassSize] = useState('small');
-  const [isBroadcasting, setIsBroadcasting] = useState(false);
-  const [bluetoothWarning, setBluetoothWarning] = useState(false);
+const {width} = Dimensions.get('window');
+const BUTTON_WIDTH = width * 0.44;
+const BUTTON_HEIGHT = 150;
 
-  const handleAttendancePress = async () => {
-    if (!course && !batch && !teacher) {
-      setBluetoothWarning(true);
-      return;
-    }
-    setBluetoothWarning(false);
+const IMAGES = {
+  attendance: require('../assets/images/abv.png'),
+  classes: require('../assets/images/abv.png'),
+  reports: require('../assets/images/abv.png'),
+  logout: require('../assets/images/abv.png'),
+};
 
-    const btEnabled = await isBluetoothEnabled();
-    if (!btEnabled) {
-      Alert.alert('Bluetooth Required', 'Please turn on Bluetooth to take attendance.');
-      return;
-    }
-
-    if (!isBroadcasting) {
-      const classData = {
-        course: course,
-        batch: batch,
-        teacher: teacher,
-        classSize: classSize.charAt(0).toUpperCase(),
-      };
-
-      console.log('Generated Session Data:', classData);
-      const started = await startBluetoothAdvertising(classData);
-
-      if (started) {
-        setIsBroadcasting(true);
-      } else {
-        Alert.alert('Error', 'Failed to start Bluetooth broadcasting.');
-      }
-    } else {
-      await stopBluetoothAdvertising();
-      setIsBroadcasting(false);
-    }
+const TeacherScreen = ({navigation}) => {
+  const handleTakeAttendance = () => {
+    navigation.navigate('TeacherAttendanceSetup');
   };
+
+  const handleManageClasses = () => console.log('Manage Classes pressed');
+  const handleViewReports = () => console.log('View Reports pressed');
+  const handleLogout = () => console.log('Logout pressed');
+
+  const SectionButton = ({image, title, onPress, color}) => (
+    <TouchableOpacity
+      style={[styles.button, {backgroundColor: 'white', borderColor: color}]}
+      onPress={onPress}>
+      <View style={styles.buttonContent}>
+        <Image source={image} style={styles.buttonImage} />
+        <Text style={[styles.buttonText, {color}]}>{title}</Text>
+      </View>
+    </TouchableOpacity>
+  );
 
   return (
     <View style={styles.container}>
-      <TeacherAttendanceFormInput
-        label="Course Name"
-        value={course}
-        onChangeText={setCourse}
-        placeholder="Enter course name"
-      />
+      <Text style={styles.header}>Teacher Dashboard</Text>
 
-      <TeacherAttendanceFormInput
-        label="Batch Name"
-        value={batch}
-        onChangeText={setBatch}
-        placeholder="Enter batch name"
-      />
+      <View style={styles.gridContainer}>
+        <View style={styles.row}>
+          <SectionButton
+            image={IMAGES.attendance}
+            title="Take Attendance"
+            onPress={handleTakeAttendance}
+            color="#4CAF50"
+          />
+          <SectionButton
+            image={IMAGES.classes}
+            title="Manage Classes"
+            onPress={handleManageClasses}
+            color="#2196F3"
+          />
+        </View>
 
-      <TeacherAttendanceFormInput
-        label="Teacher Name"
-        value={teacher}
-        onChangeText={setTeacher}
-        placeholder="Enter teacher name"
-      />
-
-      {/* 🔹 Class Size Picker */}
-      <Text style={styles.label}>Class Size</Text>
-      <View style={styles.pickerContainer}>
-        <Picker
-          selectedValue={classSize}
-          onValueChange={(itemValue) => setClassSize(itemValue)}
-          style={styles.picker}
-        >
-          <Picker.Item label="Small (1-30)" value="small" />
-          <Picker.Item label="Medium (31-60)" value="medium" />
-          <Picker.Item label="Large (61+)" value="large" />
-        </Picker>
+        <View style={styles.row}>
+          <SectionButton
+            image={IMAGES.reports}
+            title="View Reports"
+            onPress={handleViewReports}
+            color="#FF9800"
+          />
+          <SectionButton
+            image={IMAGES.logout}
+            title="Logout"
+            onPress={handleLogout}
+            color="#F44336"
+          />
+        </View>
       </View>
-
-      {bluetoothWarning && <Text style={styles.warning}>Please enter all details.</Text>}
-
-      <ButtonComponent
-        title={isBroadcasting ? 'Stop Attendance' : 'Take Attendance'}
-        onPress={handleAttendancePress}
-        color={isBroadcasting ? 'red' : 'green'}
-      />
     </View>
   );
 };
@@ -99,35 +81,52 @@ const TeacherScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#f8f9fa',
+    padding: 20,
+    paddingTop: 50,
+  },
+  header: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 30,
+    textAlign: 'center',
+  },
+  gridContainer: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  button: {
+    width: BUTTON_WIDTH,
+    height: BUTTON_HEIGHT,
+    borderRadius: 15,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f4f4f4',
-    padding: 20,
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 5,
-    display: 'flex',
-    alignSelf: 'flex-start',
-    paddingLeft: 40,
-  },
-  pickerContainer: {
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 4},
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
     borderWidth: 2,
-    borderColor: '#ccc',
-    borderRadius: 8,
-    width: '80%',
-    backgroundColor: '#fff',
   },
-  picker: {
-    height: 50,
-    width: '100%',
+  buttonContent: {
+    alignItems: 'center',
+    padding: 10,
   },
-  warning: {
-    color: 'red',
+  buttonImage: {
+    width: 60,
+    height: 60,
     marginBottom: 10,
+  },
+  buttonText: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '600',
+    textAlign: 'center',
   },
 });
 

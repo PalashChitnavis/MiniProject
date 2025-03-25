@@ -10,6 +10,7 @@
     "test": "jest"
   },
   "dependencies": {
+    "@expo/vector-icons": "^14.0.4",
     "@react-native-async-storage/async-storage": "^1.24.0",
     "@react-native-firebase/app": "^21.12.0",
     "@react-native-firebase/auth": "^21.12.0",
@@ -27,6 +28,7 @@
     "react-native-ble-advertiser": "^0.0.17",
     "react-native-ble-manager": "^12.1.4",
     "react-native-ble-plx": "^3.5.0",
+    "react-native-fingerprint-scanner": "^6.0.0",
     "react-native-gesture-handler": "^2.24.0",
     "react-native-reanimated": "^3.17.1",
     "react-native-safe-area-context": "^5.3.0",
