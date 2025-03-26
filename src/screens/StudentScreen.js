@@ -1,3 +1,5 @@
+/* eslint-disable react/no-unstable-nested-components */
+/* eslint-disable react-native/no-inline-styles */
 import React from 'react';
 import {
   View,
@@ -6,7 +8,10 @@ import {
   TouchableOpacity,
   Dimensions,
   Image,
+  Alert,
 } from 'react-native';
+import { signOutUser } from '../services/FirebaseService';
+import { useAuth } from '../contexts/AuthContext';
 
 const {width} = Dimensions.get('window');
 const BUTTON_WIDTH = width * 0.44; // Adjusted for grid
@@ -21,13 +26,31 @@ const IMAGES = {
 };
 
 const StudentScreen = ({navigation}) => {
+  const {user} = useAuth();
   // Placeholder functions
   const handleGiveAttendance = () => {
     navigation.navigate('BluetoothScanScreen');
   };
   const handleEditClasses = () => console.log('Edit Classes pressed');
   const handleViewAttendance = () => console.log('View Attendance pressed');
-  const handleLogout = () => console.log('Logout pressed');
+  const handleLogout = async () => {
+    try {
+      await signOutUser();
+      navigation.replace('Login');
+      handleLogoutSuccess();
+    } catch (error) {
+      handleAuthError('Logout', error);
+    }
+  };
+
+  const handleLogoutSuccess = () => {
+      Alert.alert('Logged out', 'You have been successfully logged out');
+    };
+
+    const handleAuthError = (operation, error) => {
+      Alert.alert(`${operation} Error`, error.message);
+      console.log(`${operation} error:`, error);
+    };
 
   const SectionButton = ({image, title, onPress, color}) => (
     <TouchableOpacity
@@ -46,7 +69,7 @@ const StudentScreen = ({navigation}) => {
   return (
     <View style={styles.container}>
       <Text style={styles.header}>Student Dashboard</Text>
-
+      <Text style={styles.subheader}>{user.email}</Text>
       <View style={styles.gridContainer}>
         <View style={styles.row}>
           <SectionButton
@@ -92,6 +115,13 @@ const styles = StyleSheet.create({
   header: {
     fontSize: 24,
     fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 0,
+    textAlign: 'center',
+  },
+  subheader: {
+    fontSize: 20,
+    fontWeight: 'normal',
     color: '#333',
     marginBottom: 0,
     textAlign: 'center',

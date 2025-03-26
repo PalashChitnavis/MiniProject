@@ -1,7 +1,8 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, {useState, useEffect} from 'react';
 import {View, Text, StyleSheet, Alert, Animated, Easing} from 'react-native';
 import ButtonComponent from '../components/ButtonComponent';
-import FingerprintScanner from 'react-native-fingerprint-scanner';
+// import FingerprintScanner from 'react-native-fingerprint-scanner';
 import {
   isBluetoothEnabled,
   startBluetoothScanning,
@@ -59,7 +60,7 @@ const BluetoothScanScreen = ({navigation}) => {
       [
         {
           text: 'Authenticate',
-          onPress: () => authenticateWithFingerprint(classData),
+          //onPress: () => authenticateWithFingerprint(classData),
         },
         {
           text: 'Rescan',
@@ -72,42 +73,42 @@ const BluetoothScanScreen = ({navigation}) => {
     );
   };
 
-  const authenticateWithFingerprint = async classData => {
-    try {
-      const result = await FingerprintScanner.authenticate({
-        description: 'Scan your fingerprint to mark attendance',
-      });
+  // const authenticateWithFingerprint = async classData => {
+  //   try {
+  //     const result = await FingerprintScanner.authenticate({
+  //       description: 'Scan your fingerprint to mark attendance',
+  //     });
 
-      if (result) {
-        Alert.alert('Success', 'Attendance marked successfully!');
-        console.log('Authentication success:', result);
-        console.log('Class data:', classData);
-        // Here you would typically send the attendance data to your backend
-        navigation.goBack();
-      }
-    } catch (error) {
-      console.log('Fingerprint error:', error);
-      Alert.alert(
-        'Authentication Failed',
-        error.message || 'Could not verify fingerprint',
-        [
-          {
-            text: 'Try Again',
-            onPress: () => authenticateWithFingerprint(classData),
-          },
-          {
-            text: 'Rescan Device',
-            onPress: () => {
-              setDeviceFound(false);
-              handleStartScan();
-            },
-          },
-        ],
-      );
-    } finally {
-      FingerprintScanner.release();
-    }
-  };
+  //     if (result) {
+  //       Alert.alert('Success', 'Attendance marked successfully!');
+  //       console.log('Authentication success:', result);
+  //       console.log('Class data:', classData);
+  //       // Here you would typically send the attendance data to your backend
+  //       navigation.goBack();
+  //     }
+  //   } catch (error) {
+  //     console.log('Fingerprint error:', error);
+  //     Alert.alert(
+  //       'Authentication Failed',
+  //       error.message || 'Could not verify fingerprint',
+  //       [
+  //         {
+  //           text: 'Try Again',
+  //           onPress: () => authenticateWithFingerprint(classData),
+  //         },
+  //         {
+  //           text: 'Rescan Device',
+  //           onPress: () => {
+  //             setDeviceFound(false);
+  //             handleStartScan();
+  //           },
+  //         },
+  //       ],
+  //     );
+  //   } finally {
+  //     FingerprintScanner.release();
+  //   }
+  // };
 
   return (
     <View style={styles.container}>

@@ -1,3 +1,4 @@
+/* eslint-disable no-return-assign */
 // services/FirebaseService.js
 import {initializeApp} from 'firebase/app';
 import {getDatabase, ref, set} from 'firebase/database';
@@ -11,6 +12,9 @@ import {
   GoogleSignin,
   statusCodes,
 } from '@react-native-google-signin/google-signin';
+import prompt from 'react-native-prompt-android';
+import { createUser, getUser } from './DatabaseService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const firebaseConfig = {
   apiKey: 'AIzaSyAaGt_RbRd6goTypvPlYEtIXyYsMW0RDV8',
@@ -26,6 +30,8 @@ const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
 export const auth = getAuth(app);
 
+auth.setPersistence('local');
+
 const webClientId =
   '880372801785-4sg3v286qirnutvglcer1acpq5ni4d0n.apps.googleusercontent.com';
 
@@ -36,54 +42,69 @@ GoogleSignin.configure({
 
 export const googleLogin = async () => {
   try {
-    // 1. Check for Play Services
     await GoogleSignin.hasPlayServices({showPlayServicesUpdateDialog: true});
 
-    // 2. Force account picker to show every time
     await GoogleSignin.signOut();
     const response = await GoogleSignin.signIn();
     const {user} = response.data;
 
-    // 3. Verify email domain
     if (!user.email.endsWith('@iiitm.ac.in')) {
       await GoogleSignin.signOut();
       throw new Error('Only iiitm.ac.in emails are allowed');
     }
 
-    // 4. Process user data
-    const emailPrefix = user.email.split('@')[0];
-    const isStudent = /\d/.test(emailPrefix);
-    let classGroup = null;
-
-    if (isStudent) {
-      const yearMatch = emailPrefix.match(/^(\d{4})_/);
-      if (!yearMatch) {
-        throw new Error('Invalid student email format (should be YYYY_ABC123)');
-      }
-      classGroup = yearMatch[1];
+    const existingUser = await getUser(user.email);
+    if (existingUser) {
+      console.log('user already exists:');
+      console.log(existingUser);
+      return existingUser;
     }
 
-    // 5. Prepare user data
-    const userData = {
-      id: isStudent ? emailPrefix : `staff_${user.id}`, // Unique ID for all users
-      name: user.name || 'No Name Provided',
+    const emailPrefix = user.email.split('@')[0];
+    const hasNumbers = /\d/.test(emailPrefix);
+    const isStudent = hasNumbers;
+    const userInfo = {
+      name: user.name || user.email,
       email: user.email,
-      profilePic: user.photo || null,
       type: isStudent ? 'student' : 'teacher',
-      ...(isStudent && {class: classGroup}),
-      subjects: {},
-      lastActive: Date.now(),
-      createdAt: Date.now(),
+      classes: [],
     };
 
-    // 6. Store in single users table
-    await set(ref(database, `users/${userData.id}`), userData);
+    if (isStudent) {
+      // Match the pattern: letters_YYYYRRR (e.g., imt_2022080)
+      const studentMatch = emailPrefix.match(/^([a-z]+)_(\d{4})(\d{3})$/i);
+      if (!studentMatch) {
+        throw new Error('Invalid student email format (should be prefix_YYYYRRR@iiitm.ac.in)');
+      }
+      const [, course, batch, rollNumber] = studentMatch;
+      userInfo.batch = batch;
+      userInfo.rollNumber = rollNumber;
+      userInfo.course = course;
+    }else {
+      prompt(
+        'Faculty Abbreviation',
+        'Please enter your faculty abbreviation (e.g., AT for Prof Aditya Trivedi):',
+        [
+          {
+            text: 'Cancel',
+            onPress: () => console.log('cancel'),
+            style: 'cancel',
+          },
+          {
+            text: 'Submit',
+            onPress: (text) => userInfo.facultyAbbreviation = text.toUpperCase(),
+          },
+        ],
+        'plain-text',
+        '',
+        'default'
+      );
+    }
 
-    return userData;
+    const dbuser = await createUser(userInfo);
+    return dbuser;
   } catch (error) {
     console.error('Login error:', error);
-
-    // Specific error handling
     if (error.code === statusCodes.SIGN_IN_CANCELLED) {
       throw new Error('Login cancelled');
     } else if (error.code === statusCodes.IN_PROGRESS) {
@@ -97,14 +118,15 @@ export const googleLogin = async () => {
 };
 
 // Sign out
-export const signOutUser = () => {
-  return signOut(auth);
+export const signOutUser = async () => {
+  await GoogleSignin.signOut();
+  await AsyncStorage.removeItem('@user');
 };
 
 // Get current user data
 export const getCurrentUser = async () => {
   const user = auth.currentUser;
-  if (!user) return null;
+  if (!user) {return null;}
 
   // Check if user is a student or teacher
   const email = user.email;
