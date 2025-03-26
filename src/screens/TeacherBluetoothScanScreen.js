@@ -8,8 +8,10 @@ import {
 } from '../services/BluetoothService';
 
 const TeacherBluetoothScanScreen = ({route, navigation}) => {
-  const {course, batch, teacher, classSize} = route.params;
+  const {data} = route.params;
   const [isBroadcasting, setIsBroadcasting] = useState(false);
+
+  const {className, teacher, classSize} = data;
 
   const handleAttendancePress = async () => {
     const btEnabled = await isBluetoothEnabled();
@@ -23,10 +25,9 @@ const TeacherBluetoothScanScreen = ({route, navigation}) => {
 
     if (!isBroadcasting) {
       const classData = {
-        course: course,
-        batch: batch,
+        className: className,
         teacher: teacher,
-        classSize: classSize.charAt(0).toUpperCase(),
+        classSize: classSize,
       };
 
       const started = await startBluetoothAdvertising(classData);
@@ -52,8 +53,7 @@ const TeacherBluetoothScanScreen = ({route, navigation}) => {
       <Text style={styles.header}>Class Information</Text>
 
       <View style={styles.infoContainer}>
-        <Text style={styles.infoText}>Course: {course}</Text>
-        <Text style={styles.infoText}>Batch: {batch}</Text>
+        <Text style={styles.infoText}>Class : {className}</Text>
         <Text style={styles.infoText}>Teacher: {teacher}</Text>
         <Text style={styles.infoText}>Class Size: {classSize}</Text>
       </View>

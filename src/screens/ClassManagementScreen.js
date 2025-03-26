@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+/* eslint-disable react-native/no-inline-styles */
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -8,18 +9,22 @@ import {
   ScrollView,
   Alert,
   Modal,
+  Animated,
+  Easing,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
+import { updateUser } from '../services/DatabaseService';
+import { useAuth } from '../contexts/AuthContext';
 
 const ClassManagementScreen = () => {
-  // Initial classes data (only using the 3 required parameters)
-  const [classes, setClasses] = useState([
-    {
-      className: 'TEST CLASS',
-      classTeacher: 'TESTABR',
-      classCode: 'TEST',
-    },
-  ]);
+  const {user, storeUser} = useAuth();
+  // Initial classes data
+  const initialClasses = user.classes || [];
+
+  const [originalClasses, setOriginalClasses] = useState(initialClasses);
+  const [classes, setClasses] = useState(initialClasses);
+  const [hasChanges, setHasChanges] = useState(false);
+  const buttonSlideAnim = useRef(new Animated.Value(0)).current;
 
   // Form state
   const [modalVisible, setModalVisible] = useState(false);
@@ -35,7 +40,7 @@ const ClassManagementScreen = () => {
   const handleInputChange = (field, value) => {
     setCurrentClass(prev => ({
       ...prev,
-      [field]: value.toUpperCase(),
+      [field]: value,
     }));
   };
 
@@ -86,9 +91,9 @@ const ClassManagementScreen = () => {
       const updatedClasses = [...classes];
       updatedClasses[editingIndex] = currentClass;
       setClasses(updatedClasses);
-      console.log('All classes after update:', updatedClasses);
+      setHasChanges(true);
+      animateButtonsIn();
     } else {
-      // Adding new class
       if (classExists(currentClass)) {
         Alert.alert('Error', 'This class already exists');
         return;
@@ -96,7 +101,8 @@ const ClassManagementScreen = () => {
 
       const updatedClasses = [...classes, currentClass];
       setClasses(updatedClasses);
-      console.log('All classes after addition:', updatedClasses);
+      setHasChanges(true);
+      animateButtonsIn();
     }
 
     setModalVisible(false);
@@ -124,18 +130,79 @@ const ClassManagementScreen = () => {
           onPress: () => {
             const newClasses = classes.filter((_, i) => i !== index);
             setClasses(newClasses);
-            console.log('All classes after deletion:', newClasses);
+            setHasChanges(true);
+            animateButtonsIn();
           },
         },
       ]
     );
   };
 
+  // Apply changes
+  const handleApplyChanges = async () => {
+    classes.forEach((cls)=>{
+      cls.classCode = cls.classCode.toUpperCase();
+      cls.className = cls.className.toUpperCase();
+      cls.classTeacher = cls.classTeacher.toUpperCase();
+    });
+    setOriginalClasses(classes);
+    const updatedUser = {...user, classes};
+    await storeUser(updatedUser);
+    await updateUser(updatedUser);
+    setHasChanges(false);
+    animateButtonsOut();
+    Alert.alert('Success', 'Changes have been saved');
+  };
+
+  // Reset changes
+  const handleResetChanges = () => {
+    Alert.alert(
+      'Reset Changes',
+      'Are you sure you want to discard all changes?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Reset',
+          style: 'destructive',
+          onPress: () => {
+            setClasses(originalClasses);
+            setHasChanges(false);
+            animateButtonsOut();
+          },
+        },
+      ]
+    );
+  };
+
+  // Animation for buttons
+  const animateButtonsIn = () => {
+    Animated.timing(buttonSlideAnim, {
+      toValue: 1,
+      duration: 300,
+      easing: Easing.out(Easing.ease),
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const animateButtonsOut = () => {
+    Animated.timing(buttonSlideAnim, {
+      toValue: 0,
+      duration: 300,
+      easing: Easing.out(Easing.ease),
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const buttonsTranslateY = buttonSlideAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [100, 0],
+  });
+
   return (
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerText}>MANAGE CLASSES</Text>
+        <Text style={styles.headerText}>Manage Classes</Text>
         <TouchableOpacity
           style={styles.addButton}
           onPress={() => {
@@ -148,16 +215,21 @@ const ClassManagementScreen = () => {
       </View>
 
       {/* Classes List */}
-      <ScrollView contentContainerStyle={styles.classesContainer}>
+      <ScrollView
+        contentContainerStyle={[
+          styles.classesContainer,
+          { paddingBottom: hasChanges ? 100 : 20 }, // Add space for buttons when visible
+        ]}
+      >
         {classes.length === 0 ? (
-          <Text style={styles.emptyText}>NO CLASSES ADDED YET</Text>
+          <Text style={styles.emptyText}>No Classes Added Yet</Text>
         ) : (
           classes.map((cls, index) => (
             <View key={`${cls.classCode}-${index}`} style={styles.classCard}>
               <View style={styles.classInfo}>
                 <Text style={styles.className}>{cls.className}</Text>
-                <Text style={styles.classDetails}>TEACHER: {cls.classTeacher}</Text>
-                <Text style={styles.classDetails}>CODE: {cls.classCode}</Text>
+                <Text style={styles.classDetails}>Teacher: {cls.classTeacher}</Text>
+                <Text style={styles.classDetails}>Class Code: {cls.classCode}</Text>
               </View>
               <View style={styles.classActions}>
                 <TouchableOpacity onPress={() => handleEdit(cls, index)}>
@@ -172,6 +244,31 @@ const ClassManagementScreen = () => {
         )}
       </ScrollView>
 
+      {/* Changes Buttons */}
+      <Animated.View
+        style={[
+          styles.changesButtonsContainer,
+          { transform: [{ translateY: buttonsTranslateY }] },
+        ]}
+      >
+        {hasChanges && (
+          <>
+            <TouchableOpacity
+              style={[styles.changesButton, styles.resetButton]}
+              onPress={handleResetChanges}
+            >
+              <Text style={styles.changesButtonText}>Reset Changes</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.changesButton, styles.applyButton]}
+              onPress={handleApplyChanges}
+            >
+              <Text style={styles.changesButtonText}>Apply Changes</Text>
+            </TouchableOpacity>
+          </>
+        )}
+      </Animated.View>
+
       {/* Add/Edit Class Modal */}
       <Modal
         animationType="slide"
@@ -185,12 +282,12 @@ const ClassManagementScreen = () => {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>
-              {isEditing ? 'EDIT CLASS' : 'ADD NEW CLASS'}
+              {isEditing ? 'Edit Class' : 'Add New Class'}
             </Text>
 
             <TextInput
               style={styles.input}
-              placeholder="CLASS NAME (ENTER FULL NAME)"
+              placeholder="Class Name (eg. Data Structures)"
               placeholderTextColor="#666"
               value={currentClass.className}
               onChangeText={(text) => handleInputChange('className', text)}
@@ -201,7 +298,7 @@ const ClassManagementScreen = () => {
 
             <TextInput
               style={styles.input}
-              placeholder="TEACHER ABBR (EG. AT FOR ADITYA TRIVEDI)"
+              placeholder="Teacher (eg. AT for Prof Aditya Trivedi)"
               placeholderTextColor="#666"
               value={currentClass.classTeacher}
               onChangeText={(text) => handleInputChange('classTeacher', text)}
@@ -212,7 +309,7 @@ const ClassManagementScreen = () => {
 
             <TextInput
               style={styles.input}
-              placeholder="CLASS CODE (EG. DS FOR DATA STRUCTURES)"
+              placeholder="Class Code (eg. DS for Data Structures)"
               placeholderTextColor="#666"
               value={currentClass.classCode}
               onChangeText={(text) => handleInputChange('classCode', text)}
@@ -229,7 +326,7 @@ const ClassManagementScreen = () => {
                   resetForm();
                 }}
               >
-                <Text style={styles.cancelButtonText}>CANCEL</Text>
+                <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -237,7 +334,7 @@ const ClassManagementScreen = () => {
                 onPress={handleSubmit}
               >
                 <Text style={styles.submitButtonText}>
-                  {isEditing ? 'UPDATE' : 'ADD'}
+                  {isEditing ? 'Update' : 'Add'}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -266,7 +363,6 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     color: '#333',
-    textTransform: 'uppercase',
   },
   addButton: {
     backgroundColor: '#4a8cff',
@@ -283,7 +379,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 20,
     color: '#666',
-    textTransform: 'uppercase',
   },
   classCard: {
     backgroundColor: '#fff',
@@ -307,13 +402,11 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 4,
     color: '#333',
-    textTransform: 'uppercase',
   },
   classDetails: {
     fontSize: 14,
     color: '#666',
     marginBottom: 2,
-    textTransform: 'uppercase',
   },
   classActions: {
     flexDirection: 'row',
@@ -337,7 +430,6 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     textAlign: 'center',
     color: '#333',
-    textTransform: 'uppercase',
   },
   input: {
     height: 50,
@@ -348,7 +440,6 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     backgroundColor: '#f9f9f9',
     color: '#000',
-    textTransform: 'uppercase',
   },
   modalButtons: {
     flexDirection: 'row',
@@ -371,12 +462,44 @@ const styles = StyleSheet.create({
   cancelButtonText: {
     fontWeight: 'bold',
     color: '#333',
-    textTransform: 'uppercase',
   },
   submitButtonText: {
     fontWeight: 'bold',
     color: '#fff',
-    textTransform: 'uppercase',
+  },
+  changesButtonsContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    padding: 16,
+    backgroundColor: '#fff',
+    borderTopWidth: 1,
+    borderTopColor: '#e0e0e0',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  changesButton: {
+    flex: 1,
+    padding: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginHorizontal: 8,
+  },
+  resetButton: {
+    backgroundColor: '#ff6b6b',
+  },
+  applyButton: {
+    backgroundColor: '#4a8cff',
+  },
+  changesButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
   },
 });
 

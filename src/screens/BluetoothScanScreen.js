@@ -8,8 +8,10 @@ import {
   startBluetoothScanning,
   stopBluetoothScanning,
 } from '../services/BluetoothService';
+import { useAuth } from '../contexts/AuthContext';
 
 const BluetoothScanScreen = ({navigation}) => {
+  const {user} = useAuth();
   const [isScanning, setIsScanning] = useState(false);
   const [deviceFound, setDeviceFound] = useState(false);
   const [scanAnimation] = useState(new Animated.Value(0));
@@ -41,7 +43,8 @@ const BluetoothScanScreen = ({navigation}) => {
     }
 
     setIsScanning(true);
-    startBluetoothScanning(classData => {
+    const classes = user.classes || [];
+    startBluetoothScanning(classes , classData => {
       setIsScanning(false);
       setDeviceFound(true);
       handleDeviceFound(classData);
@@ -56,7 +59,11 @@ const BluetoothScanScreen = ({navigation}) => {
   const handleDeviceFound = classData => {
     Alert.alert(
       'Device Found',
-      'Class detected. Authenticate to mark attendance.',
+      ` 
+      Class : ${classData.className} 
+      Teacher : ${classData.teacher}
+      Authenticate to mark attendance.
+      `,
       [
         {
           text: 'Authenticate',

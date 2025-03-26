@@ -1,3 +1,4 @@
+/* eslint-disable eqeqeq */
 /* eslint-disable no-control-regex */
 import { BleManager } from 'react-native-ble-plx';
 import BLEAdvertiser from 'react-native-ble-advertiser';
@@ -56,9 +57,9 @@ const startBluetoothAdvertising = async (classData) => {
       return true;
     }
 
-    const { course, batch, teacher, classSize } = classData;
+    const { className, teacher, classSize } = classData;
 
-    const broadcastMessage = `${course}|${batch}|${teacher}|${classSize}`;
+    const broadcastMessage = `${className}|${teacher}|${classSize}`;
     const encodedData = customEncode(broadcastMessage);
 
     console.log('broadcast message:', broadcastMessage);
@@ -103,7 +104,7 @@ const stopBluetoothAdvertising = async () => {
   }
 };
 
-const startBluetoothScanning = async (onDeviceFound) => {
+const startBluetoothScanning = async (classes , onDeviceFound) => {
   console.log('Scanning started');
 
   manager.startDeviceScan(null, null, (error, device) => {
@@ -118,11 +119,15 @@ const startBluetoothScanning = async (onDeviceFound) => {
       if (!encodedData) {return;}
       const decodedData = customDecode(encodedData);
       console.log(decodedData);
-      const [course, batch, teacher, classSize] = decodedData.split('|');
-      const classData = { course, batch, teacher, classSize, rssi: device.rssi };
+      const [className, teacher, classSize] = decodedData.split('|');
+      const classData = { className, teacher, classSize, rssi: device.rssi };
+      console.log(classes);
+      const classFound = classes.find(c => c.classCode === className && c.classTeacher === teacher);
+      if(classFound){
+        onDeviceFound(classData);
+        manager.stopDeviceScan();
+      }
       console.log('Decoded Message : ' ,classData);
-      onDeviceFound(classData);
-      manager.stopDeviceScan();
     }
   });
 };
