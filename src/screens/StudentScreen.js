@@ -31,7 +31,9 @@ const StudentScreen = ({navigation}) => {
   const handleGiveAttendance = () => {
     navigation.navigate('BluetoothScanScreen');
   };
-  const handleEditClasses = () => console.log('Edit Classes pressed');
+  const handleEditClasses = () => {
+    navigation.navigate('ClassManagement');
+  };
   const handleViewAttendance = () => console.log('View Attendance pressed');
   const handleLogout = async () => {
     try {

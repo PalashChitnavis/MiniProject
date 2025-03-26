@@ -31,7 +31,9 @@ const TeacherScreen = ({navigation}) => {
 
   const {user} = useAuth();
 
-  const handleManageClasses = () => console.log('Manage Classes pressed');
+  const handleManageClasses = () => {
+    navigation.navigate('ClassManagement');
+  };
   const handleViewReports = () => console.log('View Reports pressed');
   const handleLogout = async () => {
       try {

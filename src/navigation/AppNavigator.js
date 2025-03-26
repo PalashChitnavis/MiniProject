@@ -8,6 +8,7 @@ import HomeScreen from '../screens/HomeScreen';
 import LoginScreen from '../screens/LoginScreen';
 import StudentScreen from '../screens/StudentScreen';
 import TeacherScreen from '../screens/TeacherScreen';
+import ClassManagementScreen from '../screens/ClassManagementScreen';
 
 const Stack = createStackNavigator();
 
@@ -22,6 +23,7 @@ const AppNavigator = () => {
           <Stack.Screen name="Login" component={LoginScreen} />
           <Stack.Screen name="Student" component={StudentScreen} />
           <Stack.Screen name="Teacher" component={TeacherScreen} />
+          <Stack.Screen name="ClassManagement" component={ClassManagementScreen} />
         </Stack.Navigator>
       </NavigationContainer>
     </AuthProvider>
