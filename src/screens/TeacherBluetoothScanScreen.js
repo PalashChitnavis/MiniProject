@@ -21,9 +21,7 @@ const TeacherBluetoothScanScreen = ({route, navigation}) => {
     new Animated.Value(0.2),
     new Animated.Value(0.4),
   ]);
-  let random3DigitNumber;
-
-
+  const [random3DigitNumber, setRandom3DigitNumber] = useState(0);
 
   const [attendanceData, setAttendanceData] = useState({present: []});
 
@@ -60,6 +58,10 @@ const TeacherBluetoothScanScreen = ({route, navigation}) => {
     }
   }, [isBroadcasting]);
 
+  useEffect(()=>{
+    setRandom3DigitNumber(Math.floor(Math.random() * 900) + 100);
+  },[]);
+
   const handleAttendancePress = async () => {
     const btEnabled = await isBluetoothEnabled();
     if (!btEnabled) {
@@ -69,8 +71,6 @@ const TeacherBluetoothScanScreen = ({route, navigation}) => {
       );
       return;
     }
-    random3DigitNumber = (Math.floor(Math.random() * 900) + 100);
-
     if (!isBroadcasting) {
       const classData = {
         className: className,
@@ -173,7 +173,7 @@ const TeacherBluetoothScanScreen = ({route, navigation}) => {
     </TouchableOpacity>
   </View>
   <View style={styles.attendanceContainer}>
-    {attendanceData.present.length > 0 ? (
+    {attendanceData?.present?.length > 0 ? (
       <ScrollView
         style={styles.presentList}
         contentContainerStyle={styles.presentListContent}

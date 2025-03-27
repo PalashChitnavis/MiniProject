@@ -79,6 +79,8 @@ export const createAttendance = async (teacherEmail, classCode, random3DigitNumb
     try{
         const attendanceRef = firestore().collection('attendance').doc(`${facultyAbbreviation}_${classCode}_${random3DigitNumber}`);
 
+        console.log(`${facultyAbbreviation}_${classCode}_${random3DigitNumber}`);
+
         const record = {
             date: getLocalDateTimeString(),
             teacherEmail: teacherEmail,
@@ -97,6 +99,8 @@ export const createAttendance = async (teacherEmail, classCode, random3DigitNumb
 
 export const getAttendanceTeacher = async (facultyAbbreviation, classCode, random3DigitNumber) => {
     try {
+        console.log(`${facultyAbbreviation}_${classCode}_${random3DigitNumber}`);
+
         const docSnapshot = await firestore()
             .collection('attendance')
             .doc(`${facultyAbbreviation}_${classCode}_${random3DigitNumber}`)
@@ -106,7 +110,7 @@ export const getAttendanceTeacher = async (facultyAbbreviation, classCode, rando
             console.log('No attendance record found');
             return null;
         }
-
+        console.log(docSnapshot.data());
         return {
             ...docSnapshot.data(),
         };
