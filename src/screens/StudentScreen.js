@@ -10,8 +10,8 @@ import {
   Image,
   Alert,
 } from 'react-native';
-import { signOutUser } from '../services/FirebaseService';
-import { useAuth } from '../contexts/AuthContext';
+import {signOutUser} from '../services/FirebaseService';
+import {useAuth} from '../contexts/AuthContext';
 
 const {width} = Dimensions.get('window');
 const BUTTON_WIDTH = width * 0.44; // Adjusted for grid
@@ -19,10 +19,10 @@ const BUTTON_HEIGHT = 250; // Taller buttons for better proportions
 
 // Placeholder image paths - replace with your actual image paths
 const IMAGES = {
-  attendance: require('../assets/images/abv.png'),
-  edit: require('../assets/images/abv.png'),
-  history: require('../assets/images/abv.png'),
-  logout: require('../assets/images/abv.png'),
+  attendance: require('../assets/images/attendance.png'),
+  edit: require('../assets/images/teacher.png'),
+  history: require('../assets/images/clock.png'),
+  logout: require('../assets/images/logout.png'),
 };
 
 const StudentScreen = ({navigation}) => {
@@ -46,13 +46,13 @@ const StudentScreen = ({navigation}) => {
   };
 
   const handleLogoutSuccess = () => {
-      Alert.alert('Logged out', 'You have been successfully logged out');
-    };
+    Alert.alert('Logged out', 'You have been successfully logged out');
+  };
 
-    const handleAuthError = (operation, error) => {
-      Alert.alert(`${operation} Error`, error.message);
-      console.log(`${operation} error:`, error);
-    };
+  const handleAuthError = (operation, error) => {
+    Alert.alert(`${operation} Error`, error.message);
+    console.log(`${operation} error:`, error);
+  };
 
   const SectionButton = ({image, title, onPress, color}) => (
     <TouchableOpacity

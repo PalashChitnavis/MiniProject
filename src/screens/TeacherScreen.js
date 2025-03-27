@@ -10,18 +10,18 @@ import {
   Image,
   Alert,
 } from 'react-native';
-import { signOutUser } from '../services/FirebaseService';
-import { useAuth } from '../contexts/AuthContext';
+import {signOutUser} from '../services/FirebaseService';
+import {useAuth} from '../contexts/AuthContext';
 
 const {width} = Dimensions.get('window');
 const BUTTON_WIDTH = width * 0.44;
 const BUTTON_HEIGHT = 150;
 
 const IMAGES = {
-  attendance: require('../assets/images/abv.png'),
-  classes: require('../assets/images/abv.png'),
-  reports: require('../assets/images/abv.png'),
-  logout: require('../assets/images/abv.png'),
+  attendance: require('../assets/images/attendance.png'),
+  classes: require('../assets/images/teacher.png'),
+  reports: require('../assets/images/clock.png'),
+  logout: require('../assets/images/logout.png'),
 };
 
 const TeacherScreen = ({navigation}) => {
@@ -36,23 +36,23 @@ const TeacherScreen = ({navigation}) => {
   };
   const handleViewReports = () => console.log('View Reports pressed');
   const handleLogout = async () => {
-      try {
-        await signOutUser();
-        navigation.replace('Login');
-        handleLogoutSuccess();
-      } catch (error) {
-        handleAuthError('Logout', error);
-      }
-    };
+    try {
+      await signOutUser();
+      navigation.replace('Login');
+      handleLogoutSuccess();
+    } catch (error) {
+      handleAuthError('Logout', error);
+    }
+  };
 
-    const handleLogoutSuccess = () => {
-        Alert.alert('Logged out', 'You have been successfully logged out');
-      };
+  const handleLogoutSuccess = () => {
+    Alert.alert('Logged out', 'You have been successfully logged out');
+  };
 
-      const handleAuthError = (operation, error) => {
-        Alert.alert(`${operation} Error`, error.message);
-        console.log(`${operation} error:`, error);
-      };
+  const handleAuthError = (operation, error) => {
+    Alert.alert(`${operation} Error`, error.message);
+    console.log(`${operation} error:`, error);
+  };
 
   const SectionButton = ({image, title, onPress, color}) => (
     <TouchableOpacity

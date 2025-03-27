@@ -1,12 +1,12 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import React, {useState} from 'react';
+import {View, Text, StyleSheet, TouchableOpacity} from 'react-native';
 import ButtonComponent from '../components/ButtonComponent';
-import { Picker } from '@react-native-picker/picker';
-import { useAuth } from '../contexts/AuthContext';
+import {Picker} from '@react-native-picker/picker';
+import {useAuth} from '../contexts/AuthContext';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
-const TeacherAttendanceSetup = ({ navigation }) => {
-  const { user } = useAuth();
+const TeacherAttendanceSetup = ({navigation}) => {
+  const {user} = useAuth();
   const [attendanceObject, setAttendanceObject] = useState({
     selectedClass: '',
     classSize: 'small',
@@ -25,7 +25,12 @@ const TeacherAttendanceSetup = ({ navigation }) => {
     const data = {
       className: attendanceObject.selectedClass,
       teacher: user.facultyAbbreviation,
-      classSize: attendanceObject.classSize === 'small' ? 'S' : attendanceObject.classSize === 'medium' ? 'M' : 'L',
+      classSize:
+        attendanceObject.classSize === 'small'
+          ? 'S'
+          : attendanceObject.classSize === 'medium'
+          ? 'M'
+          : 'L',
     };
 
     console.log(data);
@@ -35,8 +40,16 @@ const TeacherAttendanceSetup = ({ navigation }) => {
     });
   };
 
-  const togglePicker = () => {
-    setIsPickerVisible(!isPickerVisible);
+  const getSelectedClassLabel = () => {
+    if (!attendanceObject.selectedClass) return `${classes[0].className}`;
+
+    const selectedClass = classes.find(
+      cls => cls.classCode === attendanceObject.selectedClass,
+    );
+
+    return selectedClass
+      ? `${selectedClass.className} (${selectedClass.classCode})`
+      : `${classes[0].className} ${classes[0].classCode}`;
   };
 
   return (
@@ -50,47 +63,38 @@ const TeacherAttendanceSetup = ({ navigation }) => {
         {/* Class Selection */}
         <View style={styles.inputContainer}>
           <Text style={styles.label}>Select Class</Text>
-          <TouchableOpacity
-            style={styles.selectionBox}
-            onPress={togglePicker}
-          >
-            <Text style={[
-              styles.selectionText,
-              !attendanceObject.selectedClass && styles.placeholderText,
-            ]}>
-              {attendanceObject.selectedClass || 'Select a class'}
-            </Text>
-            <Icon
-              name={isPickerVisible ? 'keyboard-arrow-up' : 'keyboard-arrow-down'}
-              size={24}
-              color="#666"
-            />
-          </TouchableOpacity>
+          <View style={styles.pickerContainer}>
+            <Picker
+              selectedValue={attendanceObject.selectedClass}
+              onValueChange={itemValue => {
+                setAttendanceObject(prev => ({
+                  ...prev,
+                  selectedClass: itemValue,
+                }));
+                setFormError(false);
+              }}
+              style={styles.picker}>
+              <Picker.Item
+                label={`${classes[0].className} (${classes[0].classCode})`}
+                value={`${classes[0].classCode}`}
+              />
+              {classes.map(
+                (cls, index) =>
+                  index > 0 && (
+                    <Picker.Item
+                      key={`${cls.classCode}-${index}`}
+                      label={`${cls.className} (${cls.classCode})`}
+                      value={cls.classCode}
+                    />
+                  ),
+              )}
+            </Picker>
+          </View>
 
-          {isPickerVisible && (
-            <View style={styles.pickerContainer}>
-              <Picker
-                selectedValue={attendanceObject.selectedClass}
-                onValueChange={(itemValue) => {
-                  setAttendanceObject(prev => ({
-                    ...prev,
-                    selectedClass: itemValue,
-                  }));
-                  setFormError(false);
-                  togglePicker();
-                }}
-                style={styles.picker}
-              >
-                <Picker.Item label="Select a class" value="" />
-                {classes.map((cls, index) => (
-                  <Picker.Item
-                    key={`${cls.classCode}-${index}`}
-                    label={`${cls.className} (${cls.classCode})`}
-                    value={cls.classCode}
-                  />
-                ))}
-              </Picker>
-            </View>
+          {formError && (
+            <Text style={styles.errorText}>
+              Please select a class to continue
+            </Text>
           )}
         </View>
 
@@ -100,31 +104,26 @@ const TeacherAttendanceSetup = ({ navigation }) => {
           <View style={styles.pickerContainer}>
             <Picker
               selectedValue={attendanceObject.classSize}
-              onValueChange={(itemValue) => {
+              onValueChange={itemValue => {
                 setAttendanceObject(prev => ({
                   ...prev,
                   classSize: itemValue,
                 }));
               }}
-              style={styles.picker}
-            >
+              style={styles.picker}>
               <Picker.Item label="Small (1-30 students)" value="small" />
               <Picker.Item label="Medium (31-60 students)" value="medium" />
               <Picker.Item label="Large (61+ students)" value="large" />
             </Picker>
           </View>
         </View>
-
-        {formError && (
-          <Text style={styles.errorText}>
-            Please select a class to continue
-          </Text>
-        )}
       </View>
 
       <View style={styles.buttonContainer}>
         <ButtonComponent
+          style={styles.buttonText}
           title="Start Attendance Session"
+          width={200}
           onPress={handleSubmit}
           color="#4a6da7"
           icon="play-circle-filled"
@@ -171,23 +170,6 @@ const styles = StyleSheet.create({
     color: '#334155',
     paddingLeft: 5,
   },
-  selectionBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderWidth: 1,
-    borderColor: '#cbd5e1',
-    borderRadius: 8,
-    padding: 15,
-    backgroundColor: 'white',
-  },
-  selectionText: {
-    fontSize: 16,
-    color: '#1e293b',
-  },
-  placeholderText: {
-    color: '#94a3b8',
-  },
   pickerContainer: {
     borderWidth: 1,
     borderColor: '#cbd5e1',
@@ -206,8 +188,15 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   buttonContainer: {
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+
     paddingBottom: 30,
     paddingHorizontal: 10,
+  },
+  buttonText: {
+    width: 200,
   },
 });
 

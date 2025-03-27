@@ -1,34 +1,46 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 import React, {useState, useEffect} from 'react';
 import {View, Text, StyleSheet, Alert, Animated, Easing} from 'react-native';
 import ButtonComponent from '../components/ButtonComponent';
-// import FingerprintScanner from 'react-native-fingerprint-scanner';
 import {
   isBluetoothEnabled,
   startBluetoothScanning,
   stopBluetoothScanning,
 } from '../services/BluetoothService';
-import { useAuth } from '../contexts/AuthContext';
+import {useAuth} from '../contexts/AuthContext';
 
 const BluetoothScanScreen = ({navigation}) => {
   const {user} = useAuth();
   const [isScanning, setIsScanning] = useState(false);
   const [deviceFound, setDeviceFound] = useState(false);
-  const [scanAnimation] = useState(new Animated.Value(0));
+  const [circles] = useState([
+    new Animated.Value(0),
+    new Animated.Value(0.2),
+    new Animated.Value(0.4),
+  ]);
 
-  // Animation for scanning effect
   useEffect(() => {
     if (isScanning) {
-      Animated.loop(
-        Animated.timing(scanAnimation, {
-          toValue: 1,
-          duration: 2000,
-          easing: Easing.linear,
-          useNativeDriver: true,
-        }),
-      ).start();
+      const animations = circles.map((circle, index) =>
+        Animated.loop(
+          Animated.sequence([
+            Animated.timing(circle, {
+              toValue: 1,
+              duration: 2000,
+              easing: Easing.linear,
+              useNativeDriver: false,
+            }),
+            Animated.timing(circle, {
+              toValue: 0,
+              duration: 0,
+              useNativeDriver: false,
+            }),
+          ]),
+        ),
+      );
+
+      Animated.stagger(600, animations).start();
     } else {
-      scanAnimation.setValue(0);
+      circles.forEach(circle => circle.setValue(0));
     }
   }, [isScanning]);
 
@@ -44,7 +56,7 @@ const BluetoothScanScreen = ({navigation}) => {
 
     setIsScanning(true);
     const classes = user.classes || [];
-    startBluetoothScanning(classes , classData => {
+    startBluetoothScanning(classes, classData => {
       setIsScanning(false);
       setDeviceFound(true);
       handleDeviceFound(classData);
@@ -67,7 +79,6 @@ const BluetoothScanScreen = ({navigation}) => {
       [
         {
           text: 'Authenticate',
-          //onPress: () => authenticateWithFingerprint(classData),
         },
         {
           text: 'Rescan',
@@ -80,64 +91,42 @@ const BluetoothScanScreen = ({navigation}) => {
     );
   };
 
-  // const authenticateWithFingerprint = async classData => {
-  //   try {
-  //     const result = await FingerprintScanner.authenticate({
-  //       description: 'Scan your fingerprint to mark attendance',
-  //     });
-
-  //     if (result) {
-  //       Alert.alert('Success', 'Attendance marked successfully!');
-  //       console.log('Authentication success:', result);
-  //       console.log('Class data:', classData);
-  //       // Here you would typically send the attendance data to your backend
-  //       navigation.goBack();
-  //     }
-  //   } catch (error) {
-  //     console.log('Fingerprint error:', error);
-  //     Alert.alert(
-  //       'Authentication Failed',
-  //       error.message || 'Could not verify fingerprint',
-  //       [
-  //         {
-  //           text: 'Try Again',
-  //           onPress: () => authenticateWithFingerprint(classData),
-  //         },
-  //         {
-  //           text: 'Rescan Device',
-  //           onPress: () => {
-  //             setDeviceFound(false);
-  //             handleStartScan();
-  //           },
-  //         },
-  //       ],
-  //     );
-  //   } finally {
-  //     FingerprintScanner.release();
-  //   }
-  // };
-
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Bluetooth Scanning</Text>
 
       <View style={styles.animationContainer}>
-        <Animated.Image
-          source={require('../assets/images/abv.png')}
-          style={[
-            styles.bluetoothIcon,
-            {
-              transform: [
-                {
-                  rotate: scanAnimation.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: ['0deg', '360deg'],
-                  }),
-                },
-              ],
-            },
-          ]}
-        />
+        {circles.map((circle, index) => (
+          <Animated.View
+            key={index}
+            style={[
+              styles.circle,
+              {
+                opacity: circle.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0.6, 0],
+                }),
+                transform: [
+                  {
+                    scale: circle.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [1, 3],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          />
+        ))}
+
+        <View style={styles.bluetoothIconContainer}>
+          <Animated.Image
+            source={require('../assets/images/bluetooth.png')}
+            style={styles.bluetoothIcon}
+          />
+        </View>
+      </View>
+      <View>
         <Text style={styles.statusText}>
           {isScanning
             ? 'Scanning for devices...'
@@ -171,17 +160,34 @@ const styles = StyleSheet.create({
   },
   animationContainer: {
     alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 40,
+    width: 150,
+    height: 150,
   },
-  bluetoothIcon: {
+  bluetoothIconContainer: {
+    position: 'absolute',
     width: 100,
     height: 100,
-    marginBottom: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  bluetoothIcon: {
+    width: 80,
+    height: 80,
+  },
+  circle: {
+    position: 'absolute',
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    backgroundColor: '#009EFF',
   },
   statusText: {
     fontSize: 18,
     color: '#333',
     textAlign: 'center',
+    marginTop: 20,
   },
 });
 

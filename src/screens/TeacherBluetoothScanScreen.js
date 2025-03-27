@@ -1,5 +1,5 @@
-import React, {useState} from 'react';
-import {View, Text, StyleSheet, Alert} from 'react-native';
+import React, {useState, useEffect} from 'react';
+import {View, Text, StyleSheet, Alert, Animated, Easing} from 'react-native';
 import ButtonComponent from '../components/ButtonComponent';
 import {
   isBluetoothEnabled,
@@ -10,8 +10,39 @@ import {
 const TeacherBluetoothScanScreen = ({route, navigation}) => {
   const {data} = route.params;
   const [isBroadcasting, setIsBroadcasting] = useState(false);
+  const [circles] = useState([
+    new Animated.Value(0),
+    new Animated.Value(0.2),
+    new Animated.Value(0.4),
+  ]);
 
   const {className, teacher, classSize} = data;
+
+  useEffect(() => {
+    if (isBroadcasting) {
+      const animations = circles.map((circle, index) =>
+        Animated.loop(
+          Animated.sequence([
+            Animated.timing(circle, {
+              toValue: 1,
+              duration: 2000,
+              easing: Easing.linear,
+              useNativeDriver: false,
+            }),
+            Animated.timing(circle, {
+              toValue: 0,
+              duration: 0,
+              useNativeDriver: false,
+            }),
+          ]),
+        ),
+      );
+
+      Animated.stagger(600, animations).start();
+    } else {
+      circles.forEach(circle => circle.setValue(0));
+    }
+  }, [isBroadcasting]);
 
   const handleAttendancePress = async () => {
     const btEnabled = await isBluetoothEnabled();
@@ -25,26 +56,26 @@ const TeacherBluetoothScanScreen = ({route, navigation}) => {
 
     if (!isBroadcasting) {
       const classData = {
-        className: className,
-        teacher: teacher,
-        classSize: classSize,
+        className,
+        teacher,
+        classSize,
       };
 
       const started = await startBluetoothAdvertising(classData);
 
       if (started) {
         setIsBroadcasting(true);
-        Alert.alert(
-          'Broadcasting Started',
-          'Your class is now visible to students for attendance',
-        );
+        // Alert.alert(
+        //   'Broadcasting Started',
+        //   'Your class is now visible to students for attendance.',
+        // );
       } else {
-        Alert.alert('Error', 'Failed to start Bluetooth broadcasting.');
+        // Alert.alert('Error', 'Failed to start Bluetooth broadcasting.');
       }
     } else {
       await stopBluetoothAdvertising();
       setIsBroadcasting(false);
-      Alert.alert('Broadcasting Stopped', 'Attendance session ended');
+      // Alert.alert('Broadcasting Stopped', 'Attendance session ended.');
     }
   };
 
@@ -53,9 +84,48 @@ const TeacherBluetoothScanScreen = ({route, navigation}) => {
       <Text style={styles.header}>Class Information</Text>
 
       <View style={styles.infoContainer}>
-        <Text style={styles.infoText}>Class : {className}</Text>
+        <Text style={styles.infoText}>Class: {className}</Text>
         <Text style={styles.infoText}>Teacher: {teacher}</Text>
         <Text style={styles.infoText}>Class Size: {classSize}</Text>
+      </View>
+
+      <View style={styles.animationContainer}>
+        {circles.map((circle, index) => (
+          <Animated.View
+            key={index}
+            style={[
+              styles.circle,
+              {
+                opacity: circle.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0.6, 0],
+                }),
+                transform: [
+                  {
+                    scale: circle.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [1, 3],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          />
+        ))}
+
+        <View style={styles.bluetoothIconContainer}>
+          <Animated.Image
+            source={require('../assets/images/bluetooth.png')}
+            style={styles.bluetoothIcon}
+          />
+        </View>
+      </View>
+      <View>
+        <Text style={styles.statusText}>
+          {isBroadcasting
+            ? 'Broadcasting to students...'
+            : 'Ready to broadcast'}
+        </Text>
       </View>
 
       <ButtonComponent
@@ -63,10 +133,6 @@ const TeacherBluetoothScanScreen = ({route, navigation}) => {
         onPress={handleAttendancePress}
         color={isBroadcasting ? 'red' : 'green'}
       />
-
-      <Text style={styles.statusText}>
-        {isBroadcasting ? 'Broadcasting to students...' : 'Ready to broadcast'}
-      </Text>
     </View>
   );
 };
@@ -92,11 +158,39 @@ const styles = StyleSheet.create({
     width: '90%',
     marginBottom: 30,
     elevation: 3,
+    zIndex: 20,
   },
   infoText: {
     fontSize: 16,
     marginBottom: 10,
     color: '#555',
+  },
+  animationContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 100,
+    marginTop: 100,
+    width: 50,
+    height: 50,
+  },
+  bluetoothIconContainer: {
+    position: 'absolute',
+    width: 100,
+    height: 100,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  bluetoothIcon: {
+    width: 80,
+    height: 80,
+  },
+  circle: {
+    position: 'absolute',
+    width: 100,
+    height: 100,
+    borderRadius: 75,
+    zIndex: 0,
+    backgroundColor: '#009EFF',
   },
   statusText: {
     marginTop: 20,
