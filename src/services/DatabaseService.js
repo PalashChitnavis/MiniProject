@@ -110,10 +110,8 @@ export const getAttendanceTeacher = async (facultyAbbreviation, classCode, rando
             console.log('No attendance record found');
             return null;
         }
-        console.log(docSnapshot.data());
-        return {
-            ...docSnapshot.data(),
-        };
+        console.log("hello palash", docSnapshot.data());
+        return docSnapshot.data();
 
     } catch (error) {
         console.error('Error fetching attendance record:', error);

@@ -23,13 +23,15 @@ const TeacherBluetoothScanScreen = ({route, navigation}) => {
   ]);
   const [random3DigitNumber, setRandom3DigitNumber] = useState(0);
 
-  const [attendanceData, setAttendanceData] = useState({present: []});
+  const [attendanceData, setAttendanceData] = useState([]);
 
   const {className, teacher, classSize} = data;
 
-  const handleRefresh = () => {
+  const handleRefresh = async () => {
     console.log('Refresh button clicked');
-    setAttendanceData(getAttendanceTeacher(teacher,className,random3DigitNumber));
+    await getAttendanceTeacher(teacher,className,random3DigitNumber).then((d) => {setAttendanceData(d.present);});
+    //console.log(attendanceData);
+
   };
 
   useEffect(() => {
@@ -61,6 +63,10 @@ const TeacherBluetoothScanScreen = ({route, navigation}) => {
   useEffect(()=>{
     setRandom3DigitNumber(Math.floor(Math.random() * 900) + 100);
   },[]);
+
+  useEffect(()=>{
+    console.log(attendanceData)
+  },[attendanceData]);
 
   const handleAttendancePress = async () => {
     const btEnabled = await isBluetoothEnabled();
@@ -173,12 +179,12 @@ const TeacherBluetoothScanScreen = ({route, navigation}) => {
     </TouchableOpacity>
   </View>
   <View style={styles.attendanceContainer}>
-    {attendanceData?.present?.length > 0 ? (
+    {attendanceData?.length > 0 ? (
       <ScrollView
         style={styles.presentList}
         contentContainerStyle={styles.presentListContent}
       >
-        {attendanceData.present.map((student, index) => (
+        {attendanceData.map((student, index) => (
           <View key={index} style={styles.studentItem}>
             <Text style={styles.studentText}>
               {student.split('@')[0].replace('_', ' ').toUpperCase()}
