@@ -6,15 +6,19 @@ import {
   startBluetoothAdvertising,
   stopBluetoothAdvertising,
 } from '../services/BluetoothService';
+import { createAttendance } from '../services/DatabaseService';
+import { useAuth } from '../contexts/AuthContext';
 
 const TeacherBluetoothScanScreen = ({route, navigation}) => {
   const {data} = route.params;
+  const {user} = useAuth();
   const [isBroadcasting, setIsBroadcasting] = useState(false);
   const [circles] = useState([
     new Animated.Value(0),
     new Animated.Value(0.2),
     new Animated.Value(0.4),
   ]);
+  let random3DigitNumber;
 
   const {className, teacher, classSize} = data;
 
@@ -53,13 +57,17 @@ const TeacherBluetoothScanScreen = ({route, navigation}) => {
       );
       return;
     }
+    random3DigitNumber = (Math.floor(Math.random() * 900) + 100);
 
     if (!isBroadcasting) {
       const classData = {
-        className,
-        teacher,
-        classSize,
+        className: className,
+        teacher: teacher,
+        classSize: classSize,
+        random3DigitNumber: random3DigitNumber,
       };
+
+      await createAttendance(user.email, className, random3DigitNumber, user.facultyAbbreviation);
 
       const started = await startBluetoothAdvertising(classData);
 

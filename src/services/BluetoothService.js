@@ -1,4 +1,3 @@
-/* eslint-disable eqeqeq */
 /* eslint-disable no-control-regex */
 import { BleManager } from 'react-native-ble-plx';
 import BLEAdvertiser from 'react-native-ble-advertiser';
@@ -57,9 +56,9 @@ const startBluetoothAdvertising = async (classData) => {
       return true;
     }
 
-    const { className, teacher, classSize } = classData;
+    const { className, teacher, classSize, random3DigitNumber } = classData;
 
-    const broadcastMessage = `${className}|${teacher}|${classSize}`;
+    const broadcastMessage = `${className}|${teacher}|${classSize}|${random3DigitNumber}`;
     const encodedData = customEncode(broadcastMessage);
 
     console.log('broadcast message:', broadcastMessage);
@@ -119,8 +118,8 @@ const startBluetoothScanning = async (classes , onDeviceFound) => {
       if (!encodedData) {return;}
       const decodedData = customDecode(encodedData);
       console.log(decodedData);
-      const [className, teacher, classSize] = decodedData.split('|');
-      const classData = { className, teacher, classSize, rssi: device.rssi };
+      const [className, teacher, classSize, random3DigitNumber] = decodedData.split('|');
+      const classData = { className, teacher, classSize, rssi: device.rssi, random3DigitNumber };
       console.log(classes);
       const classFound = classes.find(c => c.classCode === className && c.classTeacher === teacher);
       if(classFound){

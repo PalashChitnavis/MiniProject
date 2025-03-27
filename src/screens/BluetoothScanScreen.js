@@ -7,6 +7,7 @@ import {
   stopBluetoothScanning,
 } from '../services/BluetoothService';
 import {useAuth} from '../contexts/AuthContext';
+import { putAttendance } from '../services/DatabaseService';
 
 const BluetoothScanScreen = ({navigation}) => {
   const {user} = useAuth();
@@ -74,11 +75,23 @@ const BluetoothScanScreen = ({navigation}) => {
       ` 
       Class : ${classData.className} 
       Teacher : ${classData.teacher}
-      Authenticate to mark attendance.
+      Mark attendance.
       `,
       [
         {
-          text: 'Authenticate',
+          text: 'Mark',
+          onPress: async () => {
+            const result = await putAttendance(classData.teacher,classData.className,user.email,classData.random3DigitNumber);
+            if(!result){
+              Alert.alert('Error','Error marking attendance',[{
+                text: 'Rescan',
+                onPress: () => {
+                  setDeviceFound(false);
+                  handleStartScan();
+                },
+              }]);
+            }
+          },
         },
         {
           text: 'Rescan',
