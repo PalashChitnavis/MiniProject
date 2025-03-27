@@ -9,7 +9,7 @@ import {
   startBluetoothAdvertising,
   stopBluetoothAdvertising,
 } from '../services/BluetoothService';
-import { createAttendance } from '../services/DatabaseService';
+import { createAttendance, getAttendanceTeacher } from '../services/DatabaseService';
 import { useAuth } from '../contexts/AuthContext';
 
 const TeacherBluetoothScanScreen = ({route, navigation}) => {
@@ -23,24 +23,16 @@ const TeacherBluetoothScanScreen = ({route, navigation}) => {
   ]);
   let random3DigitNumber;
 
-  const handleRefresh = () => {
-    console.log('Refresh button clicked');
-    // You'll implement the actual refresh logic here later
-  };
 
-  // Dummy attendance data
-  const [attendanceData, setAttendanceData] = useState({
-    classCode: 'TEST',
-    date: '9:41 AM 27 March 2025',
-    present: ['test_student_74085@iiitm.ac.in','test_student_74085@iiitm.ac.in','test_student_74086@iiitm.ac.in','test_student_74087@iiitm.ac.in','test_student_74088@iiitm.ac.in','test_student_74089@iiitm.ac.in','test_student_74090@iiitm.ac.in','test_student_740123@iiitm.ac.in','test_student_740222@iiitm.ac.in','test_student_740123123@iiitm.ac.in',
-      'test_student_740123124@iiitm.ac.in',
-      'test_student_74085@iiitm.ac.in','test_student_74086@iiitm.ac.in','test_student_74087@iiitm.ac.in','test_student_74088@iiitm.ac.in','test_student_74089@iiitm.ac.in','test_student_74090@iiitm.ac.in','test_student_740123@iiitm.ac.in','test_student_740222@iiitm.ac.in','test_student_740123123@iiitm.ac.in',
-      'test_student_740123124@iiitm.ac.in',
-    ],
-    teacherEmail: 'test_teacher@iiitm.ac.in',
-  });
+
+  const [attendanceData, setAttendanceData] = useState({present: []});
 
   const {className, teacher, classSize} = data;
+
+  const handleRefresh = () => {
+    console.log('Refresh button clicked');
+    setAttendanceData(getAttendanceTeacher(teacher,className,random3DigitNumber));
+  };
 
   useEffect(() => {
     if (isBroadcasting) {
@@ -92,6 +84,7 @@ const TeacherBluetoothScanScreen = ({route, navigation}) => {
       const started = await startBluetoothAdvertising(classData);
 
       if (started) {
+        setAttendanceData(getAttendanceTeacher(teacher,className,random3DigitNumber));
         setIsBroadcasting(true);
       }
     } else {
@@ -194,7 +187,7 @@ const TeacherBluetoothScanScreen = ({route, navigation}) => {
         ))}
       </ScrollView>
     ) : (
-      <Text style={styles.noStudentsText}>No students marked present yet</Text>
+      <Text style={styles.noStudentsText}>No students marked present yet, Hit refresh to get latest data.</Text>
     )}
   </View>
 </View>
