@@ -7,14 +7,14 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 
 const TeacherAttendanceSetup = ({navigation}) => {
   const {user} = useAuth();
+  const classes = user.classes || [];
   const [attendanceObject, setAttendanceObject] = useState({
-    selectedClass: '',
+    selectedClass: classes[0].classCode ? classes[0].classCode : '',
     classSize: 'small',
   });
   const [formError, setFormError] = useState(false);
   const [isPickerVisible, setIsPickerVisible] = useState(false);
 
-  const classes = user.classes || [];
 
   const handleSubmit = () => {
     if (!attendanceObject.selectedClass) {
@@ -122,7 +122,7 @@ const TeacherAttendanceSetup = ({navigation}) => {
       <View style={styles.buttonContainer}>
         <ButtonComponent
           style={styles.buttonText}
-          title="Start Attendance Session"
+          title="Start Session"
           width={200}
           onPress={handleSubmit}
           color="#4a6da7"

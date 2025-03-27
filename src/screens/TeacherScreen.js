@@ -56,7 +56,7 @@ const TeacherScreen = ({navigation}) => {
 
   const SectionButton = ({image, title, onPress, color}) => (
     <TouchableOpacity
-      style={[styles.button, {backgroundColor: 'white', borderColor: color}]}
+      style={[styles.button, {backgroundColor: 'white', borderColor: color, shadowColor: color}]}
       onPress={onPress}>
       <View style={styles.buttonContent}>
         <Image source={image} style={styles.buttonImage} />
