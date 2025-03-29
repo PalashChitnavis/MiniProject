@@ -32,7 +32,7 @@ const TeacherScreen = ({navigation}) => {
   const {user} = useAuth();
 
   const handleManageClasses = () => {
-    navigation.navigate('ClassManagement');
+    navigation.navigate('ClassManagementTeacher');
   };
   const handleViewReports = () => console.log('View Reports pressed');
   const handleLogout = async () => {

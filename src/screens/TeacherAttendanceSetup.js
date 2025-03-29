@@ -1,5 +1,5 @@
 import React, {useState} from 'react';
-import {View, Text, StyleSheet, TouchableOpacity} from 'react-native';
+import {View, Text, StyleSheet} from 'react-native';
 import ButtonComponent from '../components/ButtonComponent';
 import {Picker} from '@react-native-picker/picker';
 import {useAuth} from '../contexts/AuthContext';
@@ -9,12 +9,10 @@ const TeacherAttendanceSetup = ({navigation}) => {
   const {user} = useAuth();
   const classes = user.classes || [];
   const [attendanceObject, setAttendanceObject] = useState({
-    selectedClass: classes[0].classCode ? classes[0].classCode : '',
+    selectedClass: classes[0]?.classCode ? classes[0].classCode : 'Please Add Classes in \'Manage Classes\'',
     classSize: 'small',
   });
   const [formError, setFormError] = useState(false);
-  const [isPickerVisible, setIsPickerVisible] = useState(false);
-
 
   const handleSubmit = () => {
     if (!attendanceObject.selectedClass) {
@@ -23,14 +21,9 @@ const TeacherAttendanceSetup = ({navigation}) => {
     }
 
     const data = {
-      className: attendanceObject.selectedClass,
+      classCode: attendanceObject.selectedClass,
       teacher: user.facultyAbbreviation,
-      classSize:
-        attendanceObject.classSize === 'small'
-          ? 'S'
-          : attendanceObject.classSize === 'medium'
-          ? 'M'
-          : 'L',
+      classSize: attendanceObject.classSize,
     };
 
     console.log(data);
@@ -38,18 +31,6 @@ const TeacherAttendanceSetup = ({navigation}) => {
     navigation.navigate('TeacherBluetoothScanScreen', {
       data: data,
     });
-  };
-
-  const getSelectedClassLabel = () => {
-    if (!attendanceObject.selectedClass) return `${classes[0].className}`;
-
-    const selectedClass = classes.find(
-      cls => cls.classCode === attendanceObject.selectedClass,
-    );
-
-    return selectedClass
-      ? `${selectedClass.className} (${selectedClass.classCode})`
-      : `${classes[0].className} ${classes[0].classCode}`;
   };
 
   return (
@@ -63,32 +44,37 @@ const TeacherAttendanceSetup = ({navigation}) => {
         {/* Class Selection */}
         <View style={styles.inputContainer}>
           <Text style={styles.label}>Select Class</Text>
-          <View style={styles.pickerContainer}>
-            <Picker
-              selectedValue={attendanceObject.selectedClass}
-              onValueChange={itemValue => {
-                setAttendanceObject(prev => ({
-                  ...prev,
-                  selectedClass: itemValue,
-                }));
-                setFormError(false);
-              }}
-              style={styles.picker}>
-              <Picker.Item
-                label={`${classes[0].className} (${classes[0].classCode})`}
-                value={`${classes[0].classCode}`}
-              />
-              {classes.map(
-                (cls, index) =>
-                  index > 0 && (
+          <View style={styles.pickerWrapper}>
+            <View style={styles.pickerContainer}>
+              <Picker
+                selectedValue={attendanceObject.selectedClass}
+                onValueChange={itemValue => {
+                  setAttendanceObject(prev => ({
+                    ...prev,
+                    selectedClass: itemValue,
+                  }));
+                  setFormError(false);
+                }}
+                style={styles.picker}>
+                {classes.length > 0 ? (
+                  classes.map((cls, index) => (
                     <Picker.Item
                       key={`${cls.classCode}-${index}`}
-                      label={`${cls.className} (${cls.classCode})`}
+                      label={`${cls.classCode}`}
                       value={cls.classCode}
                     />
-                  ),
-              )}
-            </Picker>
+                  ))
+                ) : (
+                  <Picker.Item label="No classes available" value="" />
+                )}
+              </Picker>
+            </View>
+            <Icon
+              name="arrow-drop-down"
+              size={24}
+              color="#64748b"
+              style={styles.dropdownIcon}
+            />
           </View>
 
           {formError && (
@@ -101,20 +87,28 @@ const TeacherAttendanceSetup = ({navigation}) => {
         {/* Class Size Selection */}
         <View style={styles.inputContainer}>
           <Text style={styles.label}>Expected Class Size</Text>
-          <View style={styles.pickerContainer}>
-            <Picker
-              selectedValue={attendanceObject.classSize}
-              onValueChange={itemValue => {
-                setAttendanceObject(prev => ({
-                  ...prev,
-                  classSize: itemValue,
-                }));
-              }}
-              style={styles.picker}>
-              <Picker.Item label="Small (1-30 students)" value="small" />
-              <Picker.Item label="Medium (31-60 students)" value="medium" />
-              <Picker.Item label="Large (61+ students)" value="large" />
-            </Picker>
+          <View style={styles.pickerWrapper}>
+            <View style={styles.pickerContainer}>
+              <Picker
+                selectedValue={attendanceObject.classSize}
+                onValueChange={itemValue => {
+                  setAttendanceObject(prev => ({
+                    ...prev,
+                    classSize: itemValue,
+                  }));
+                }}
+                style={styles.picker}>
+                <Picker.Item label="Small (1-30 students)" value="small" />
+                <Picker.Item label="Medium (31-60 students)" value="medium" />
+                <Picker.Item label="Large (61+ students)" value="large" />
+              </Picker>
+            </View>
+            <Icon
+              name="arrow-drop-down"
+              size={24}
+              color="#64748b"
+              style={styles.dropdownIcon}
+            />
           </View>
         </View>
       </View>
@@ -170,6 +164,9 @@ const styles = StyleSheet.create({
     color: '#334155',
     paddingLeft: 5,
   },
+  pickerWrapper: {
+    position: 'relative',
+  },
   pickerContainer: {
     borderWidth: 1,
     borderColor: '#cbd5e1',
@@ -180,6 +177,13 @@ const styles = StyleSheet.create({
   picker: {
     height: 50,
     color: '#1e293b',
+    paddingRight: 30, // Make space for the dropdown icon
+  },
+  dropdownIcon: {
+    position: 'absolute',
+    right: 10,
+    top: 12,
+    pointerEvents: 'none', // Allows clicks to pass through to the Picker
   },
   errorText: {
     color: '#dc2626',
@@ -191,7 +195,6 @@ const styles = StyleSheet.create({
     display: 'flex',
     justifyContent: 'center',
     alignItems: 'center',
-
     paddingBottom: 30,
     paddingHorizontal: 10,
   },

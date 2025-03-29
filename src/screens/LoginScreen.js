@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, {useState} from 'react';
 import {
   View,
   Text,
@@ -65,9 +65,8 @@ const LoginScreen = () => {
       const dbuser = {
         batch: '2022',
         classes: [{
-          className: 'Test Class',
-          classTeacher: 'TESTABR',
-          classCode: 'TEST',
+          classTeacher: 'TEST_TEACHER',
+          classCode: 'TEST_CLASS',
         }],
         email: `test_student_${rand}@iiitm.ac.in`,
         name: `Test Student ${rand}`,

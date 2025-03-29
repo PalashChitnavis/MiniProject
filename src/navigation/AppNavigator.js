@@ -4,14 +4,14 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { AuthProvider } from '../contexts/AuthContext';
 import AuthLoadingScreen from '../screens/AuthLoadingScreen';
-import HomeScreen from '../screens/HomeScreen';
 import LoginScreen from '../screens/LoginScreen';
 import StudentScreen from '../screens/StudentScreen';
 import TeacherScreen from '../screens/TeacherScreen';
-import ClassManagementScreen from '../screens/ClassManagementScreen';
 import TeacherAttendanceSetup from '../screens/TeacherAttendanceSetup';
 import TeacherBluetoothScanScreen from '../screens/TeacherBluetoothScanScreen';
 import BluetoothScanScreen from '../screens/BluetoothScanScreen';
+import ClassManagementTeacher from '../screens/ClassManagementTeacher';
+import ClassManagementStudent from '../screens/ClassManagementStudent';
 
 const Stack = createStackNavigator();
 
@@ -26,10 +26,11 @@ const AppNavigator = () => {
           <Stack.Screen name="Login" component={LoginScreen} />
           <Stack.Screen name="Student" component={StudentScreen} />
           <Stack.Screen name="Teacher" component={TeacherScreen} />
-          <Stack.Screen name="ClassManagement" component={ClassManagementScreen} />
+          <Stack.Screen name="ClassManagementStudent" component={ClassManagementStudent} />
           <Stack.Screen name="TeacherAttendanceSetup" component={TeacherAttendanceSetup} />
           <Stack.Screen name="TeacherBluetoothScanScreen" component={TeacherBluetoothScanScreen} />
           <Stack.Screen name="BluetoothScanScreen" component={BluetoothScanScreen} />
+          <Stack.Screen name="ClassManagementTeacher" component={ClassManagementTeacher} />
         </Stack.Navigator>
       </NavigationContainer>
     </AuthProvider>

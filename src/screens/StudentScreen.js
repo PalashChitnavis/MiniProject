@@ -32,7 +32,7 @@ const StudentScreen = ({navigation}) => {
     navigation.navigate('BluetoothScanScreen');
   };
   const handleEditClasses = () => {
-    navigation.navigate('ClassManagement');
+    navigation.navigate('ClassManagementStudent');
   };
   const handleViewAttendance = () => console.log('View Attendance pressed');
   const handleLogout = async () => {

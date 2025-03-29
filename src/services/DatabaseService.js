@@ -47,17 +47,18 @@ export const updateUser = async (user) => {
     }
 };
 
-export const putAttendance = async (teacherAbbr, classCode, studentEmail, random3DigitNumber) => {
+export const putAttendance = async (teacherAbbr, classCode, studentEmail) => {
     try {
+        const emailKey = studentEmail.replace(/[@.]/g, '_');
         // 1. Get the document reference directly using your ID format
         const docRef = firestore()
-            .collection('attendance')
-            .doc(`${teacherAbbr}_${classCode}_${random3DigitNumber}`);
+            .collection('users')
+            .doc(emailKey);
 
         // 2. Get the document snapshot
         const docSnapshot = await docRef.get();
 
-        if (!docSnapshot.exists) {
+        if (docSnapshot.exists) {
             throw new Error('Attendance session not found');
         }
 
@@ -75,24 +76,42 @@ export const putAttendance = async (teacherAbbr, classCode, studentEmail, random
     }
 };
 
-export const createAttendance = async (teacherEmail, classCode, random3DigitNumber, facultyAbbreviation) => {
-    try{
-        const attendanceRef = firestore().collection('attendance').doc(`${facultyAbbreviation}_${classCode}_${random3DigitNumber}`);
+export const createTeacherAttendance = async (teacherEmail, classCode, teacherAbbr) => {
+    try {
+        const emailKey = teacherEmail.replace(/[@.]/g, '_');
+        const attendanceRef = firestore().collection('teacher_attendance').doc(emailKey);
+        const docSnapshot = await attendanceRef.get();
 
-        console.log(`${facultyAbbreviation}_${classCode}_${random3DigitNumber}`);
+        if (docSnapshot.exists) {
+            const newClass = {
+                date: getLocalDateString(),
+                present: [],
+            };
 
-        const record = {
-            date: getLocalDateTimeString(),
-            teacherEmail: teacherEmail,
-            classCode: classCode,
-            present: [],
-        };
+            await attendanceRef.update({
+                classes: firestore.FieldValue.arrayUnion(newClass),
+            });
 
-        await attendanceRef.set(record);
-        console.log('Attendance recorded created successfully!');
-        return attendanceRef;
-    }catch(error){
-        console.error('Error creating attendance record:', error);
+            console.log('Added new class to existing attendance record:', newClass);
+            return attendanceRef;
+        } else {
+            // Document doesn't exist - create new record
+            const record = {
+                teacherAbbr,
+                classCode: classCode,
+                classes: [{
+                    date: getLocalDateString(),
+                    present: [],
+                    absent: [],
+                }],
+            };
+
+            await attendanceRef.set(record);
+            console.log('Created new attendance record:', record);
+            return attendanceRef;
+        }
+    } catch(error) {
+        console.error('Error managing attendance record:', error);
         throw error;
     }
 };
@@ -110,7 +129,7 @@ export const getAttendanceTeacher = async (facultyAbbreviation, classCode, rando
             console.log('No attendance record found');
             return null;
         }
-        console.log("hello palash", docSnapshot.data());
+        console.log(docSnapshot.data());
         return docSnapshot.data();
 
     } catch (error) {
@@ -119,20 +138,13 @@ export const getAttendanceTeacher = async (facultyAbbreviation, classCode, rando
     }
 };
 
-function getLocalDateTimeString() {
+function getLocalDateString() {
     const now = new Date();
-
-    // Time parts
-    const hours = now.getHours();
-    const minutes = now.getMinutes();
-    const ampm = hours >= 12 ? 'PM' : 'AM';
-    const twelveHour = hours % 12 || 12;
-    const formattedTime = `${twelveHour}:${minutes.toString().padStart(2, '0')} ${ampm}`;
 
     // Date parts
     const day = now.getDate();
     const month = now.toLocaleString('default', { month: 'long' });
     const year = now.getFullYear();
 
-    return `${formattedTime} ${day} ${month} ${year}`;
+    return `${day}/${month}/${year}`;
   }

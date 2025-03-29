@@ -1,5 +1,6 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable react-native/no-inline-styles */
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,13 +12,16 @@ import {
   Modal,
   Animated,
   Easing,
+  BackHandler,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { updateUser } from '../services/DatabaseService';
 import { useAuth } from '../contexts/AuthContext';
+import { useNavigation } from '@react-navigation/native';
 
-const ClassManagementScreen = () => {
+const ClassManagementStudent = () => {
   const {user, storeUser} = useAuth();
+  const navigation = useNavigation();
   // Initial classes data
   const initialClasses = user.classes || [];
 
@@ -31,23 +35,95 @@ const ClassManagementScreen = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [editingIndex, setEditingIndex] = useState(null);
   const [currentClass, setCurrentClass] = useState({
-    className: '',
     classTeacher: '',
     classCode: '',
   });
+
+  // Handle back button/back navigation with unsaved changes
+  useEffect(() => {
+    const backAction = () => {
+      if (hasChanges) {
+        showUnsavedChangesAlert();
+        return true; // Prevent default back behavior
+      }
+      return false;
+    };
+
+    const backHandler = BackHandler.addEventListener(
+      'hardwareBackPress',
+      backAction
+    );
+
+    // Add navigation listener for software back button
+    const unsubscribe = navigation.addListener('beforeRemove', (e) => {
+      if (!hasChanges) {
+        return;
+      }
+
+      // Prevent default behavior of leaving the screen
+      e.preventDefault();
+
+      showUnsavedChangesAlert(e);
+    });
+
+    return () => {
+      backHandler.remove();
+      unsubscribe();
+    };
+  }, [hasChanges, navigation]);
+
+  const showUnsavedChangesAlert = (e) => {
+    Alert.alert(
+      'Unsaved Changes',
+      'You have unsaved changes. Do you want to save them before leaving?',
+      [
+        {
+          text: 'Discard',
+          style: 'destructive',
+          onPress: () => {
+            // Reset changes and allow navigation
+            setClasses(originalClasses);
+            setHasChanges(false);
+            if (e) {
+              navigation.dispatch(e.data.action);
+            } else {
+              navigation.goBack();
+            }
+          },
+        },
+        {
+          text: 'Save',
+          onPress: async () => {
+            await handleApplyChanges();
+            if (e) {
+              navigation.dispatch(e.data.action);
+            } else {
+              navigation.goBack();
+            }
+          },
+        },
+        {
+          text: 'Cancel',
+          style: 'cancel',
+          onPress: () => {
+            // Do nothing, stay on screen
+          },
+        },
+      ]
+    );
+  };
 
   // Convert input to uppercase
   const handleInputChange = (field, value) => {
     setCurrentClass(prev => ({
       ...prev,
-      [field]: value,
+      [field]: value.toUpperCase(), // Auto-uppercase
     }));
   };
 
   // Reset form
   const resetForm = () => {
     setCurrentClass({
-      className: '',
       classTeacher: '',
       classCode: '',
     });
@@ -58,7 +134,6 @@ const ClassManagementScreen = () => {
   // Check if class already exists
   const classExists = (cls) => {
     return classes.some(existingClass =>
-      existingClass.className === cls.className &&
       existingClass.classTeacher === cls.classTeacher &&
       existingClass.classCode === cls.classCode
     );
@@ -68,7 +143,6 @@ const ClassManagementScreen = () => {
   const anotherClassExists = (cls, currentIndex) => {
     return classes.some((existingClass, index) =>
       index !== currentIndex &&
-      existingClass.className === cls.className &&
       existingClass.classTeacher === cls.classTeacher &&
       existingClass.classCode === cls.classCode
     );
@@ -76,7 +150,7 @@ const ClassManagementScreen = () => {
 
   // Submit class (add or update)
   const handleSubmit = () => {
-    if (!currentClass.className || !currentClass.classTeacher || !currentClass.classCode) {
+    if (!currentClass.classTeacher || !currentClass.classCode) {
       Alert.alert('Error', 'Please fill all fields');
       return;
     }
@@ -140,13 +214,13 @@ const ClassManagementScreen = () => {
 
   // Apply changes
   const handleApplyChanges = async () => {
-    classes.forEach((cls)=>{
-      cls.classCode = cls.classCode.toUpperCase();
-      cls.className = cls.className.toUpperCase();
-      cls.classTeacher = cls.classTeacher.toUpperCase();
-    });
-    setOriginalClasses(classes);
-    const updatedUser = {...user, classes};
+    const normalizedClasses = classes.map(cls => ({
+      classTeacher: cls.classTeacher.toUpperCase(),
+      classCode: cls.classCode.toUpperCase(),
+    }));
+
+    setOriginalClasses(normalizedClasses);
+    const updatedUser = {...user, classes: normalizedClasses};
     await storeUser(updatedUser);
     await updateUser(updatedUser);
     setHasChanges(false);
@@ -162,7 +236,7 @@ const ClassManagementScreen = () => {
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Reset',
+          text: 'Discard',
           style: 'destructive',
           onPress: () => {
             setClasses(originalClasses);
@@ -202,7 +276,7 @@ const ClassManagementScreen = () => {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerText}>Manage Classes</Text>
+        <Text style={styles.headerText}>My Classes</Text>
         <TouchableOpacity
           style={styles.addButton}
           onPress={() => {
@@ -218,7 +292,7 @@ const ClassManagementScreen = () => {
       <ScrollView
         contentContainerStyle={[
           styles.classesContainer,
-          { paddingBottom: hasChanges ? 100 : 20 }, // Add space for buttons when visible
+          { paddingBottom: hasChanges ? 100 : 20 },
         ]}
       >
         {classes.length === 0 ? (
@@ -227,9 +301,8 @@ const ClassManagementScreen = () => {
           classes.map((cls, index) => (
             <View key={`${cls.classCode}-${index}`} style={styles.classCard}>
               <View style={styles.classInfo}>
-                <Text style={styles.className}>{cls.className}</Text>
-                <Text style={styles.classDetails}>Teacher: {cls.classTeacher}</Text>
-                <Text style={styles.classDetails}>Class Code: {cls.classCode}</Text>
+                <Text style={styles.classCode}>Class: {cls.classCode}</Text>
+                <Text style={styles.classTeacher}>Teacher: {cls.classTeacher}</Text>
               </View>
               <View style={styles.classActions}>
                 <TouchableOpacity onPress={() => handleEdit(cls, index)}>
@@ -257,13 +330,13 @@ const ClassManagementScreen = () => {
               style={[styles.changesButton, styles.resetButton]}
               onPress={handleResetChanges}
             >
-              <Text style={styles.changesButtonText}>Reset Changes</Text>
+              <Text style={styles.changesButtonText}>Discard</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.changesButton, styles.applyButton]}
               onPress={handleApplyChanges}
             >
-              <Text style={styles.changesButtonText}>Apply Changes</Text>
+              <Text style={styles.changesButtonText}>Save</Text>
             </TouchableOpacity>
           </>
         )}
@@ -281,24 +354,29 @@ const ClassManagementScreen = () => {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>
-              {isEditing ? 'Edit Class' : 'Add New Class'}
+            <Text style={styles.modalTitleA}>
+              {isEditing ? 'Edit Class Details' : 'Add New Class'}
             </Text>
+            <Text style={styles.modalTitleB}>
+              Both fields are required
+            </Text>
+
 
             <TextInput
               style={styles.input}
-              placeholder="Class Name (eg. Data Structures)"
+              placeholder="Class Code (e.g., OS, WCT)"
               placeholderTextColor="#666"
-              value={currentClass.className}
-              onChangeText={(text) => handleInputChange('className', text)}
+              value={currentClass.classCode}
+              onChangeText={(text) => handleInputChange('classCode', text)}
               selectionColor="#4a8cff"
               underlineColorAndroid="transparent"
               autoCapitalize="characters"
+              autoFocus={true}
             />
 
             <TextInput
               style={styles.input}
-              placeholder="Teacher (eg. AT for Prof Aditya Trivedi)"
+              placeholder="Teacher Code (e.g., AT, KKP)"
               placeholderTextColor="#666"
               value={currentClass.classTeacher}
               onChangeText={(text) => handleInputChange('classTeacher', text)}
@@ -306,17 +384,9 @@ const ClassManagementScreen = () => {
               underlineColorAndroid="transparent"
               autoCapitalize="characters"
             />
-
-            <TextInput
-              style={styles.input}
-              placeholder="Class Code (eg. DS for Data Structures)"
-              placeholderTextColor="#666"
-              value={currentClass.classCode}
-              onChangeText={(text) => handleInputChange('classCode', text)}
-              selectionColor="#4a8cff"
-              underlineColorAndroid="transparent"
-              autoCapitalize="characters"
-            />
+            <Text style={styles.modalTitleB}>
+              Please use short codes only (e.g, AT, HCI, SNS, KKP)
+            </Text>
 
             <View style={styles.modalButtons}>
               <TouchableOpacity
@@ -379,6 +449,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 20,
     color: '#666',
+    fontSize: 16,
   },
   classCard: {
     backgroundColor: '#fff',
@@ -397,16 +468,17 @@ const styles = StyleSheet.create({
   classInfo: {
     flex: 1,
   },
-  className: {
+  classTeacher: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 4,
+    color: 'green',
+  },
+  classCode: {
     fontSize: 16,
     fontWeight: 'bold',
     marginBottom: 4,
     color: '#333',
-  },
-  classDetails: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 2,
   },
   classActions: {
     flexDirection: 'row',
@@ -424,12 +496,19 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 20,
   },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 20,
+  modalTitleA: {
+    fontSize: 16,
+    fontWeight: 'normal',
+    marginBottom: 5,
     textAlign: 'center',
     color: '#333',
+  },
+  modalTitleB: {
+    fontSize: 16,
+    fontWeight: 'normal',
+    marginBottom: 20,
+    textAlign: 'center',
+    color: 'red',
   },
   input: {
     height: 50,
@@ -503,4 +582,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default ClassManagementScreen;
+export default ClassManagementStudent;
