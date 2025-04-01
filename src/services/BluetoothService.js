@@ -68,7 +68,7 @@ export const startBluetoothAdvertising = async (bluetoothData) => {
 
     BLEAdvertiser.setCompanyId(0x0001);
 
-
+    BLEAdvertiser.stopBroadcast();
     await BLEAdvertiser.broadcast(SERVICE_UUID, encodedData, {})
       .then(() => {
         console.log('✅ BLE Broadcasting Started Successfully');

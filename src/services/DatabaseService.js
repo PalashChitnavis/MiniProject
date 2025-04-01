@@ -138,37 +138,49 @@ export const putAttendance = async (teacherCode, classCode, studentEmail) => {
 export const upsertTeacherAttendance = async (classCode, teacherCode) => {
     try {
         const teacherAttendanceRef = firestore().collection('teacher_attendance').doc(`${classCode}_${teacherCode}`);
-        const docSnapshot = await teacherAttendanceRef.get();
         const classesRef = firestore().collection('classes').doc(`${classCode}_${teacherCode}`);
+        const currentDate = getLocalDateString();
 
-        if (docSnapshot.exists) {
+        await firestore().runTransaction(async (transaction) => {
+            // 1. Get teacher attendance document
+            const docSnapshot = await transaction.get(teacherAttendanceRef);
+
+            // 2. Prepare the new class record
             const newClass = {
-                date: getLocalDateString(),
+                date: currentDate,
                 present: [],
             };
 
-            await teacherAttendanceRef.update({
-                classes: firestore.FieldValue.arrayUnion(newClass),
-            });
+            if (docSnapshot.exists) {
+                // Update existing document
+                transaction.update(teacherAttendanceRef, {
+                    classes: firestore.FieldValue.arrayUnion(newClass),
+                });
+            } else {
+                // Create new document
+                transaction.set(teacherAttendanceRef, {
+                    teacherCode: teacherCode,
+                    classCode: classCode,
+                    classes: [newClass],
+                });
+            }
 
-            console.log('Added new class to existing attendance record:', newClass);
-        } else {
-            // Document doesn't exist - create new record
-            const record = {
-                teacherCode: teacherCode,
-                classCode: classCode,
-                classes: [{
-                    date: getLocalDateString(),
-                    present: [],
-                }],
-            };
-
-            await teacherAttendanceRef.set(record);
-            console.log('Created new attendance record:', record);
-        }
-        await classesRef.update({
-            dates: firestore.FieldValue.arrayUnion(getLocalDateString()),
+            // 3. Update the classes document
+            const classesSnapshot = await transaction.get(classesRef);
+            if (classesSnapshot.exists) {
+                transaction.update(classesRef, {
+                    dates: firestore.FieldValue.arrayUnion(currentDate),
+                });
+            } else {
+                transaction.set(classesRef, {
+                    dates: [currentDate],
+                    classCode: classCode,
+                    teacherCode: teacherCode,
+                });
+            }
         });
+
+        console.log('Successfully updated attendance records');
         return teacherAttendanceRef;
     } catch(error) {
         console.error('Error managing attendance record:', error);
