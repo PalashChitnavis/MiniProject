@@ -15,7 +15,7 @@ import {
   BackHandler,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
-import { updateUser } from '../services/DatabaseService';
+import { updateUser, upsertClassesTeacher } from '../services/DatabaseService';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigation } from '@react-navigation/native';
 
@@ -208,9 +208,13 @@ const ClassManagementTeacher = () => {
     }));
 
     setOriginalClasses(normalizedClasses);
+    console.log(normalizedClasses);
     const updatedUser = {...user, classes: normalizedClasses};
     await storeUser(updatedUser);
     await updateUser(updatedUser);
+    for (const cls of normalizedClasses) {
+      await upsertClassesTeacher(user.teacherCode, cls.classCode);
+    }
     setHasChanges(false);
     animateButtonsOut();
     Alert.alert('Success', 'Changes have been saved');

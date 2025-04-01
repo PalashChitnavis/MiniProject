@@ -47,40 +47,99 @@ export const updateUser = async (user) => {
     }
 };
 
-export const putAttendance = async (teacherAbbr, classCode, studentEmail) => {
+export const putAttendance = async (teacherCode, classCode, studentEmail) => {
     try {
-        const emailKey = studentEmail.replace(/[@.]/g, '_');
-        // 1. Get the document reference directly using your ID format
-        const docRef = firestore()
-            .collection('users')
-            .doc(emailKey);
+        // Create document IDs
+        const studentEmailKey = studentEmail.replace(/[@.]/g, '_');
+        const teacherAttendanceDocId = `${classCode}_${teacherCode}`;
 
-        // 2. Get the document snapshot
-        const docSnapshot = await docRef.get();
+        // Get current date in format "29/March/2025"
+        const currentDate = getLocalDateString();
 
-        if (docSnapshot.exists) {
-            throw new Error('Attendance session not found');
-        }
+        // Get references to both documents
+        const studentRef = firestore().collection('student_attendance').doc(studentEmailKey);
+        const teacherRef = firestore().collection('teacher_attendance').doc(teacherAttendanceDocId);
 
-        // 3. Update present array using arrayUnion to prevent duplicates
-        await docRef.update({
-            present: firestore.FieldValue.arrayUnion(studentEmail),
+        // Use a transaction to update both documents atomically
+        await firestore().runTransaction(async (transaction) => {
+            // 1. Update student_attendance document
+            const studentDoc = await transaction.get(studentRef);
+
+            if (!studentDoc.exists) {
+                // Create new student document
+                transaction.set(studentRef, {
+                    studentEmail: studentEmail,
+                    classes: [{
+                        classCode: classCode,
+                        teacherCode: teacherCode,
+                        datesPresent: [currentDate],
+                    }],
+                });
+            } else {
+                // Update existing student document
+                const studentData = studentDoc.data();
+                const classes = studentData.classes || [];
+
+                const classIndex = classes.findIndex(
+                    cls => cls.classCode === classCode && cls.teacherCode === teacherCode
+                );
+
+                if (classIndex >= 0) {
+                    // Update existing class record
+                    const existingClass = classes[classIndex];
+                    const updatedDates = Array.from(new Set([
+                        ...(existingClass.datesPresent || []),
+                        currentDate,
+                    ]));
+
+                    transaction.update(studentRef, {
+                        [`classes.${classIndex}.datesPresent`]: updatedDates,
+                    });
+                } else {
+                    // Add new class record
+                    transaction.update(studentRef, {
+                        classes: firestore.FieldValue.arrayUnion({
+                            classCode: classCode,
+                            teacherCode: teacherCode,
+                            datesPresent: [currentDate],
+                        }),
+                    });
+                }
+            }
+
+            // 2. Update teacher_attendance document
+            const teacherDoc = await transaction.get(teacherRef);
+
+                // Update existing teacher document
+                const teacherData = teacherDoc.data();
+                const classes = teacherData.classes || [];
+
+                // Find the class record for today's date
+                const classIndex = classes.findIndex(
+                    cls => cls.date === currentDate
+                );
+
+                if (classIndex >= 0) {
+                    // Update existing date record
+                    transaction.update(teacherRef, {
+                        [`classes.${classIndex}.present`]: firestore.FieldValue.arrayUnion(studentEmail),
+                    });
+                }
         });
 
-        console.log('Attendance recorded successfully!');
+        console.log('Attendance recorded successfully in both student and teacher records!');
         return true;
-
     } catch (error) {
         console.error('Error putting attendance:', error);
         throw error;
     }
 };
 
-export const createTeacherAttendance = async (teacherEmail, classCode, teacherAbbr) => {
+export const upsertTeacherAttendance = async (classCode, teacherCode) => {
     try {
-        const emailKey = teacherEmail.replace(/[@.]/g, '_');
-        const attendanceRef = firestore().collection('teacher_attendance').doc(emailKey);
-        const docSnapshot = await attendanceRef.get();
+        const teacherAttendanceRef = firestore().collection('teacher_attendance').doc(`${classCode}_${teacherCode}`);
+        const docSnapshot = await teacherAttendanceRef.get();
+        const classesRef = firestore().collection('classes').doc(`${classCode}_${teacherCode}`);
 
         if (docSnapshot.exists) {
             const newClass = {
@@ -88,55 +147,117 @@ export const createTeacherAttendance = async (teacherEmail, classCode, teacherAb
                 present: [],
             };
 
-            await attendanceRef.update({
+            await teacherAttendanceRef.update({
                 classes: firestore.FieldValue.arrayUnion(newClass),
             });
 
             console.log('Added new class to existing attendance record:', newClass);
-            return attendanceRef;
         } else {
             // Document doesn't exist - create new record
             const record = {
-                teacherAbbr,
+                teacherCode: teacherCode,
                 classCode: classCode,
                 classes: [{
                     date: getLocalDateString(),
                     present: [],
-                    absent: [],
                 }],
             };
 
-            await attendanceRef.set(record);
+            await teacherAttendanceRef.set(record);
             console.log('Created new attendance record:', record);
-            return attendanceRef;
         }
+        await classesRef.update({
+            dates: firestore.FieldValue.arrayUnion(getLocalDateString()),
+        });
+        return teacherAttendanceRef;
     } catch(error) {
         console.error('Error managing attendance record:', error);
         throw error;
     }
 };
 
-export const getAttendanceTeacher = async (facultyAbbreviation, classCode, random3DigitNumber) => {
+export const getAttendanceTeacher = async (teacherCode, classCode) => {
     try {
-        console.log(`${facultyAbbreviation}_${classCode}_${random3DigitNumber}`);
 
         const docSnapshot = await firestore()
-            .collection('attendance')
-            .doc(`${facultyAbbreviation}_${classCode}_${random3DigitNumber}`)
-            .get();
+            .collection('teacher_attendance')
+            .doc(`${classCode}_${teacherCode}`);
 
         if (!docSnapshot.exists) {
             console.log('No attendance record found');
             return null;
         }
         console.log(docSnapshot.data());
-        return docSnapshot.data();
+        const currentDate = getLocalDateString();
+        const data = docSnapshot.data();
+        if (!data.classes || !Array.isArray(data.classes)) {
+            console.log('Classes array not found or invalid');
+            return [];
+          }
+
+          // Find the class entry for today's date
+          const todaysClass = data.classes.find(cls =>
+            cls.date === currentDate
+          );
+
+          if (!todaysClass) {
+            console.log('No attendance record for today');
+            return [];
+          }
+
+          return todaysClass.present || [];
 
     } catch (error) {
         console.error('Error fetching attendance record:', error);
         throw error;
     }
 };
+
+export const upsertClassesTeacher = async (teacherCode, classCode) => {
+    try{
+        const attendanceRef = firestore().collection('classes').doc(`${classCode}_${teacherCode}`);
+        const docSnapshot = await attendanceRef.get();
+
+        if (docSnapshot.exists) {
+            return (await attendanceRef.get()).data();
+        } else {
+            // Document doesn't exist - create new record
+            const record = {
+                teacherCode: teacherCode,
+                classCode: classCode,
+                students: [],
+                dates: [],
+            };
+
+            await attendanceRef.set(record);
+            console.log('Created new class record:', record);
+            return attendanceRef;
+        }
+    }catch(error){
+        console.error('Error creating classes document:', error);
+        throw error;
+    }
+};
+
+export const addStudentToClass = async (classCode, teacherCode, studentEmail) => {
+    try{
+        const classesRef = firestore().collection('classes').doc(`${classCode}_${teacherCode}`);
+        if(classesRef === null){
+            console.log('No classes found for this');
+            return null;
+        }
+        await classesRef.update({
+            students: firestore.FieldValue.arrayUnion(studentEmail),
+        });
+        console.log('Student added to class successfully!');
+        return classesRef;
+    }catch(error){
+        console.error('Error adding student to class:', error);
+        throw error;
+    }
+};
+
+
 
 function getLocalDateString() {
     const now = new Date();

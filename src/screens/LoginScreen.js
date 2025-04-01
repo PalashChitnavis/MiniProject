@@ -11,7 +11,7 @@ import {
 import {googleLogin, signOutUser} from '../services/FirebaseService';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigation } from '@react-navigation/native';
-import { createUser, getUser } from '../services/DatabaseService';
+import { addStudentToClass, createUser, getUser } from '../services/DatabaseService';
 
 const LoginScreen = () => {
   const {user, storeUser} = useAuth();
@@ -65,9 +65,10 @@ const LoginScreen = () => {
       const dbuser = {
         batch: '2022',
         classes: [{
-          classTeacher: 'TEST_TEACHER',
+          teacherCode: 'TEST_TEACHER',
           classCode: 'TEST_CLASS',
         }],
+        course: 'imt',
         email: `test_student_${rand}@iiitm.ac.in`,
         name: `Test Student ${rand}`,
         type: 'student',
@@ -76,6 +77,7 @@ const LoginScreen = () => {
       setLoading(true);
       await createUser(dbuser);
       await storeUser(dbuser);
+      await addStudentToClass('TEST_CLASS', 'TEST_TEACHER', dbuser.email);
       navigation.replace('Student');
       setIsLoggedIn(true);
       setLoading(false);

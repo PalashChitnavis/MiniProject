@@ -15,7 +15,7 @@ import {
   BackHandler,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
-import { updateUser } from '../services/DatabaseService';
+import { addStudentToClass, updateUser } from '../services/DatabaseService';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigation } from '@react-navigation/native';
 
@@ -35,7 +35,7 @@ const ClassManagementStudent = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [editingIndex, setEditingIndex] = useState(null);
   const [currentClass, setCurrentClass] = useState({
-    classTeacher: '',
+    teacherCode: '',
     classCode: '',
   });
 
@@ -124,7 +124,7 @@ const ClassManagementStudent = () => {
   // Reset form
   const resetForm = () => {
     setCurrentClass({
-      classTeacher: '',
+      teacherCode: '',
       classCode: '',
     });
     setIsEditing(false);
@@ -134,7 +134,7 @@ const ClassManagementStudent = () => {
   // Check if class already exists
   const classExists = (cls) => {
     return classes.some(existingClass =>
-      existingClass.classTeacher === cls.classTeacher &&
+      existingClass.teacherCode === cls.teacherCode &&
       existingClass.classCode === cls.classCode
     );
   };
@@ -143,14 +143,14 @@ const ClassManagementStudent = () => {
   const anotherClassExists = (cls, currentIndex) => {
     return classes.some((existingClass, index) =>
       index !== currentIndex &&
-      existingClass.classTeacher === cls.classTeacher &&
+      existingClass.teacherCode === cls.teacherCode &&
       existingClass.classCode === cls.classCode
     );
   };
 
   // Submit class (add or update)
   const handleSubmit = () => {
-    if (!currentClass.classTeacher || !currentClass.classCode) {
+    if (!currentClass.teacherCode || !currentClass.classCode) {
       Alert.alert('Error', 'Please fill all fields');
       return;
     }
@@ -215,7 +215,7 @@ const ClassManagementStudent = () => {
   // Apply changes
   const handleApplyChanges = async () => {
     const normalizedClasses = classes.map(cls => ({
-      classTeacher: cls.classTeacher.toUpperCase(),
+      teacherCode: cls.teacherCode.toUpperCase(),
       classCode: cls.classCode.toUpperCase(),
     }));
 
@@ -223,6 +223,9 @@ const ClassManagementStudent = () => {
     const updatedUser = {...user, classes: normalizedClasses};
     await storeUser(updatedUser);
     await updateUser(updatedUser);
+    for(const cls of normalizedClasses) {
+      await addStudentToClass(cls.classCode, cls.teacherCode, user.email);
+    }
     setHasChanges(false);
     animateButtonsOut();
     Alert.alert('Success', 'Changes have been saved');
@@ -302,7 +305,7 @@ const ClassManagementStudent = () => {
             <View key={`${cls.classCode}-${index}`} style={styles.classCard}>
               <View style={styles.classInfo}>
                 <Text style={styles.classCode}>Class: {cls.classCode}</Text>
-                <Text style={styles.classTeacher}>Teacher: {cls.classTeacher}</Text>
+                <Text style={styles.teacherCode}>Teacher: {cls.teacherCode}</Text>
               </View>
               <View style={styles.classActions}>
                 <TouchableOpacity onPress={() => handleEdit(cls, index)}>
@@ -378,8 +381,8 @@ const ClassManagementStudent = () => {
               style={styles.input}
               placeholder="Teacher Code (e.g., AT, KKP)"
               placeholderTextColor="#666"
-              value={currentClass.classTeacher}
-              onChangeText={(text) => handleInputChange('classTeacher', text)}
+              value={currentClass.teacherCode}
+              onChangeText={(text) => handleInputChange('teacherCode', text)}
               selectionColor="#4a8cff"
               underlineColorAndroid="transparent"
               autoCapitalize="characters"
@@ -468,7 +471,7 @@ const styles = StyleSheet.create({
   classInfo: {
     flex: 1,
   },
-  classTeacher: {
+  teacherCode: {
     fontSize: 16,
     fontWeight: 'bold',
     marginBottom: 4,

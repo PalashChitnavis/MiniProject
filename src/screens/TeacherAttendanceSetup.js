@@ -22,7 +22,7 @@ const TeacherAttendanceSetup = ({navigation}) => {
 
     const data = {
       classCode: attendanceObject.selectedClass,
-      teacher: user.facultyAbbreviation,
+      teacherCode: user.teacherCode,
       classSize: attendanceObject.classSize,
     };
 

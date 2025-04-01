@@ -20,6 +20,8 @@ import {
 import {
   createTeacherAttendance,
   getAttendanceTeacher,
+  upsertClassesTeacher,
+  upsertTeacherAttendance,
 } from '../services/DatabaseService';
 import { useAuth } from '../contexts/AuthContext';
 import AttendanceSection from '../components/AttendanceSection';
@@ -33,22 +35,36 @@ const TeacherBluetoothScanScreen = ({ route, navigation }) => {
     new Animated.Value(0.2),
     new Animated.Value(0.4),
   ]);
-  const [random3DigitNumber, setRandom3DigitNumber] = useState(0);
+  const [classData, setClassData] = useState([]);
+  const { classCode, teacherCode, classSize } = data;
 
-  const [attendanceData, setAttendanceData] = useState(['imt_2022001@iiitm.ac.in','imt_2022002@iiitm.ac.in','imt_2022003@iiitm.ac.in','imt_2022004@iiitm.ac.in','imt_2022005@iiitm.ac.in','imt_2022006@iiitm.ac.in','imt_2022007@iiitm.ac.in','imt_2022008@iiitm.ac.in','imt_2022009@iiitm.ac.in','imt_2022010@iiitm.ac.in','imt_2022011@iiitm.ac.in','imt_2022012@iiitm.ac.in','imt_2022013@iiitm.ac.in']);
 
-  const classData = ['imt_2022001@iiitm.ac.in','imt_2022002@iiitm.ac.in','imt_2022003@iiitm.ac.in','imt_2022004@iiitm.ac.in','imt_2022005@iiitm.ac.in','imt_2022006@iiitm.ac.in','imt_2022007@iiitm.ac.in','imt_2022008@iiitm.ac.in','imt_2022009@iiitm.ac.in','imt_2022010@iiitm.ac.in','imt_2022011@iiitm.ac.in','imt_2022012@iiitm.ac.in','imt_2022013@iiitm.ac.in','imt_2022014@iiitm.ac.in','imt_2022016@iiitm.ac.in','imt_2022015@iiitm.ac.in'];
+  useEffect(() => {
+    async function getClassData(){
+      const res = await upsertClassesTeacher(teacherCode, classCode);
+      setClassData(res);
+    }
 
-  const { classCode, teacher, classSize } = data;
+    getClassData();
+
+  },[]);
+
+  useEffect(() => {
+    console.log(classData);
+  },[classData]);
+
+  const [attendanceData, setAttendanceData] = useState([]);
+
+
 
   const handleRefresh = async () => {
     console.log('Refresh button clicked');
-    await getAttendanceTeacher(teacher, classCode, random3DigitNumber).then(
+    await getAttendanceTeacher(teacherCode, classCode).then(
       (d) => {
-        setAttendanceData(d.present);
+        setAttendanceData(d);
       },
     );
-    //console.log(attendanceData);
+    console.log(attendanceData);
   };
 
   useEffect(() => {
@@ -77,9 +93,6 @@ const TeacherBluetoothScanScreen = ({ route, navigation }) => {
     }
   }, [isBroadcasting]);
 
-  useEffect(() => {
-    setRandom3DigitNumber(Math.floor(Math.random() * 900) + 100);
-  }, []);
 
   // useEffect(()=>{
   //   console.log(attendanceData);
@@ -97,22 +110,20 @@ const TeacherBluetoothScanScreen = ({ route, navigation }) => {
     if (!isBroadcasting) {
       const bluetoothData = {
         classCode: classCode,
-        teacher: teacher,
+        teacherCode: teacherCode,
         classSize: classSize,
       };
 
-      await createTeacherAttendance(
-        user.email,
+      await upsertTeacherAttendance(
         classCode,
-        user.facultyAbbreviation,
+        teacherCode,
       );
 
-      const started = await startBluetoothAdvertising(classData);
+      const started = await startBluetoothAdvertising(bluetoothData);
 
       if (started) {
-        setAttendanceData(
-          getAttendanceTeacher(teacher, classCode, random3DigitNumber),
-        );
+        const resp = await getAttendanceTeacher(teacherCode, classCode);
+        setAttendanceData(resp);
         setIsBroadcasting(true);
       }
     } else {
@@ -173,7 +184,7 @@ const TeacherBluetoothScanScreen = ({ route, navigation }) => {
             </View>
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Teacher:</Text>
-              <Text style={styles.infoValue}>{teacher}</Text>
+              <Text style={styles.infoValue}>{teacherCode}</Text>
             </View>
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Class Size:</Text>
@@ -200,7 +211,7 @@ const TeacherBluetoothScanScreen = ({ route, navigation }) => {
               <Text style={styles.refreshText}>Refresh</Text>
             </TouchableOpacity>
           </View>
-          <AttendanceSection attendanceData={attendanceData} classData={classData}/>
+          <AttendanceSection attendanceData={attendanceData} classData={classData.students}/>
         </View>
       </View>
       {/* Action Button - moved outside ScrollView */}

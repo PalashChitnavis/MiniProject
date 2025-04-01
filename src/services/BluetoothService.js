@@ -49,22 +49,25 @@ const isBluetoothEnabled = async () => {
   }
 };
 
-const startBluetoothAdvertising = async (classData) => {
+export const startBluetoothAdvertising = async (bluetoothData) => {
   try {
     if (isAdvertising) {
       console.log('Already broadcasting!');
       return true;
     }
 
-    const { className, teacher, classSize, random3DigitNumber } = classData;
+    const { classCode, teacherCode, classSize } = bluetoothData;
 
-    const broadcastMessage = `${className}|${teacher}|${classSize}|${random3DigitNumber}`;
+    const newClassSize = classSize === 'small' ? 'S' : classSize === 'medium' ? 'M' : 'L';
+
+    const broadcastMessage = `${classCode}|${teacherCode}|${newClassSize}`;
     const encodedData = customEncode(broadcastMessage);
 
     console.log('broadcast message:', broadcastMessage);
     console.log('encoded data', encodedData);
 
     BLEAdvertiser.setCompanyId(0x0001);
+
 
     await BLEAdvertiser.broadcast(SERVICE_UUID, encodedData, {})
       .then(() => {
@@ -118,15 +121,15 @@ const startBluetoothScanning = async (classes , onDeviceFound) => {
       if (!encodedData) {return;}
       const decodedData = customDecode(encodedData);
       console.log(decodedData);
-      const [className, teacher, classSize, random3DigitNumber] = decodedData.split('|');
-      const classData = { className, teacher, classSize, rssi: device.rssi, random3DigitNumber };
+      const [classCode, teacherCode, classSize] = decodedData.split('|');
+      const bluetoothData = { classCode, teacherCode, classSize, rssi: device.rssi };
       console.log(classes);
-      const classFound = classes.find(c => c.classCode === className && c.classTeacher === teacher);
+      const classFound = classes.find(c => c.classCode === classCode && c.teacherCode === teacherCode);
       if(classFound){
-        onDeviceFound(classData);
+        onDeviceFound(bluetoothData);
         manager.stopDeviceScan();
       }
-      console.log('Decoded Message : ' ,classData);
+      console.log('Decoded Message : ' ,bluetoothData);
     }
   });
 };
@@ -147,7 +150,6 @@ const customDecode = (encodedStr) => {
 
 export {
   isBluetoothEnabled,
-  startBluetoothAdvertising,
   stopBluetoothAdvertising,
   startBluetoothScanning,
   stopBluetoothScanning,

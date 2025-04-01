@@ -58,10 +58,10 @@ const BluetoothScanScreen = ({navigation}) => {
 
     setIsScanning(true);
     const classes = user.classes || [];
-    startBluetoothScanning(classes, classData => {
+    startBluetoothScanning(classes, bluetoothData => {
       setIsScanning(false);
       setDeviceFound(true);
-      handleDeviceFound(classData);
+      handleDeviceFound(bluetoothData);
     });
   };
 
@@ -70,19 +70,19 @@ const BluetoothScanScreen = ({navigation}) => {
     setIsScanning(false);
   };
 
-  const handleDeviceFound = classData => {
+  const handleDeviceFound = bluetoothData => {
     Alert.alert(
       'Device Found',
       ` 
-      Class : ${classData.className} 
-      Teacher : ${classData.teacher}
+      Class : ${bluetoothData.classCode} 
+      Teacher : ${bluetoothData.teacherCode}
       Mark attendance.
       `,
       [
         {
           text: 'Mark',
           onPress: async () => {
-            const result = await putAttendance(classData.teacher,classData.className,user.email,classData.random3DigitNumber);
+            const result = await putAttendance(bluetoothData.teacherCode,bluetoothData.classCode,user.email);
             if(!result){
               Alert.alert('Error','Error marking attendance',[{
                 text: 'Rescan',

@@ -5,7 +5,7 @@ const AttendanceSection = ({attendanceData, classData}) => {
   const [activeTab, setActiveTab] = useState('present');
 
   const presentStudents = attendanceData || [];
-const absentStudents = classData.filter(student => !attendanceData.includes(student));
+  const absentStudents = classData?.filter(student => !attendanceData?.includes(student));
 
   return (
     <View style={styles.attendanceContainer}>
@@ -22,7 +22,7 @@ const absentStudents = classData.filter(student => !attendanceData.includes(stud
               styles.tabText,
               activeTab === 'present' && styles.activeTabText,
             ]}>
-            Present ({presentStudents.length})
+            Present ({presentStudents?.length})
           </Text>
         </TouchableOpacity>
 
@@ -37,7 +37,7 @@ const absentStudents = classData.filter(student => !attendanceData.includes(stud
               styles.tabText,
               activeTab === 'absent' && styles.activeTabText,
             ]}>
-            Absent ({absentStudents.length})
+            Absent ({absentStudents?.length})
           </Text>
         </TouchableOpacity>
       </View>
