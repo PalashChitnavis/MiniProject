@@ -123,6 +123,7 @@ export const putAttendance = async (teacherCode, classCode, studentEmail) => {
                     // Update existing date record
                     transaction.update(teacherRef, {
                         [`classes.${classIndex}.present`]: firestore.FieldValue.arrayUnion(studentEmail),
+                        [`classes.${classIndex}.date`]: currentDate,
                     });
                 }
         });
@@ -190,34 +191,42 @@ export const upsertTeacherAttendance = async (classCode, teacherCode) => {
 
 export const getAttendanceTeacher = async (teacherCode, classCode) => {
     try {
+        console.log(`Fetching attendance for: ${classCode}_${teacherCode}`);
 
-        const docSnapshot = await firestore()
+        const docRef = firestore()
             .collection('teacher_attendance')
             .doc(`${classCode}_${teacherCode}`);
 
+        const docSnapshot = await docRef.get();
+
         if (!docSnapshot.exists) {
             console.log('No attendance record found');
-            return null;
+            return [];
         }
-        console.log(docSnapshot.data());
-        const currentDate = getLocalDateString();
+
         const data = docSnapshot.data();
-        if (!data.classes || !Array.isArray(data.classes)) {
-            console.log('Classes array not found or invalid');
-            return [];
-          }
+        console.log('Document data:', data);
 
-          // Find the class entry for today's date
-          const todaysClass = data.classes.find(cls =>
+        const currentDate = getLocalDateString();
+
+        // Handle object-style classes (with numeric keys)
+        if (!data.classes || typeof data.classes !== 'object') {
+            console.log('Classes not found or invalid format');
+            return [];
+        }
+
+        // Convert classes object to array and find today's class
+        const classesArray = Object.values(data.classes);
+        const todaysClass = classesArray.find(cls =>
             cls.date === currentDate
-          );
+        );
 
-          if (!todaysClass) {
-            console.log('No attendance record for today');
+        if (!todaysClass) {
+            console.log(`No attendance record for today (${currentDate})`);
             return [];
-          }
+        }
 
-          return todaysClass.present || [];
+        return todaysClass.present || [];
 
     } catch (error) {
         console.error('Error fetching attendance record:', error);

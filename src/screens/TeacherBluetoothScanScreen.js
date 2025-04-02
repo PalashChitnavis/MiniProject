@@ -59,11 +59,9 @@ const TeacherBluetoothScanScreen = ({ route, navigation }) => {
 
   const handleRefresh = async () => {
     console.log('Refresh button clicked');
-    await getAttendanceTeacher(teacherCode, classCode).then(
-      (d) => {
-        setAttendanceData(d);
-      },
-    );
+    const resp = await getAttendanceTeacher(teacherCode, classCode);
+    console.log(resp);
+    setAttendanceData(resp);
     console.log(attendanceData);
   };
 
