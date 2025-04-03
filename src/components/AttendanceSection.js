@@ -1,11 +1,45 @@
 import React, {useState} from 'react';
-import {View, Text, TouchableOpacity, ScrollView, StyleSheet} from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ScrollView,
+  StyleSheet,
+  Image,
+} from 'react-native';
+import {cancelAttendance, putAttendance} from '../services/DatabaseService';
 
-const AttendanceSection = ({attendanceData, classData}) => {
+const AttendanceSection = ({
+  attendanceData,
+  classData,
+  teacherCode,
+  classCode,
+}) => {
   const [activeTab, setActiveTab] = useState('present');
 
   const presentStudents = attendanceData || [];
-  const absentStudents = classData?.filter(student => !attendanceData?.includes(student));
+  const absentStudents = classData?.filter(
+    student => !attendanceData?.includes(student),
+  );
+
+  const handleCancelAttendance = async studentEmail => {
+    try {
+      await cancelAttendance(teacherCode, classCode, studentEmail);
+      alert('Attendance cancelled successfully');
+    } catch (error) {
+      alert('Error cancelling attendance: ' + error.message);
+    }
+  };
+
+  // You'll need to implement this function
+  const handleMarkPresent = async studentEmail => {
+    try {
+      await putAttendance(teacherCode, classCode, studentEmail);
+      alert('Attendance marked successfully');
+    } catch (error) {
+      alert('Error marking attendance: ' + error.message);
+    }
+  };
 
   return (
     <View style={styles.attendanceContainer}>
@@ -27,10 +61,7 @@ const AttendanceSection = ({attendanceData, classData}) => {
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[
-            styles.tabButton,
-            activeTab === 'absent' && styles.activeTab,
-          ]}
+          style={[styles.tabButton, activeTab === 'absent' && styles.activeTab]}
           onPress={() => setActiveTab('absent')}>
           <Text
             style={[
@@ -46,7 +77,7 @@ const AttendanceSection = ({attendanceData, classData}) => {
       {activeTab === 'present' ? (
         presentStudents.length > 0 ? (
           <ScrollView
-            style={styles.presentList}
+            style={styles.studentsList}
             persistentScrollbar={true}
             showsVerticalScrollIndicator={true}>
             {presentStudents.map((student, index) => (
@@ -54,17 +85,25 @@ const AttendanceSection = ({attendanceData, classData}) => {
                 <Text style={styles.studentText}>
                   {student.split('@')[0].replace('_', ' ').toUpperCase()}
                 </Text>
+                <TouchableOpacity
+                  onPress={() => handleCancelAttendance(student)}
+                  style={styles.actionButton}>
+                  <Image
+                    source={require('../assets/images/clock.png')}
+                    style={styles.actionImage}
+                  />
+                </TouchableOpacity>
               </View>
             ))}
           </ScrollView>
         ) : (
           <Text style={styles.noStudentsText}>
-            No students marked present yet. Hit refresh to get latest data.
+            No students marked present yet
           </Text>
         )
       ) : absentStudents.length > 0 ? (
         <ScrollView
-          style={styles.presentList}
+          style={styles.studentsList}
           persistentScrollbar={true}
           showsVerticalScrollIndicator={true}>
           {absentStudents.map((student, index) => (
@@ -72,33 +111,39 @@ const AttendanceSection = ({attendanceData, classData}) => {
               <Text style={styles.studentText}>
                 {student.split('@')[0].replace('_', ' ').toUpperCase()}
               </Text>
+              <TouchableOpacity
+                onPress={() => handleMarkPresent(student)}
+                style={styles.actionButton}>
+                <Image
+                  source={require('../assets/images/clock.png')}
+                  style={styles.actionImage}
+                />
+              </TouchableOpacity>
             </View>
           ))}
         </ScrollView>
       ) : (
-        <Text style={styles.noStudentsText}>
-          No absent students recorded.
-        </Text>
+        <Text style={styles.noStudentsText}>All students are present</Text>
       )}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-    attendanceContainer: {
-        backgroundColor: 'white',
-        borderRadius: 12,
-        padding: 15,
-        width: '100%',
-        minHeight: 200,
-        maxHeight: 300,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 6,
-        elevation: 10,
-        marginTop: 10,
-    },
+  attendanceContainer: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 15,
+    width: '100%',
+    minHeight: 200,
+    maxHeight: 300,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 10,
+    marginTop: 10,
+  },
   tabsContainer: {
     flexDirection: 'row',
     marginBottom: 10,
@@ -123,17 +168,30 @@ const styles = StyleSheet.create({
     color: '#3498db',
     fontWeight: '600',
   },
-  presentList: {
+  studentsList: {
     width: '100%',
   },
   studentItem: {
-    paddingVertical: 8,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#ecf0f1',
+    borderBottomColor: '#f0f0f0',
   },
   studentText: {
-    fontSize: 14,
-    color: '#34495e',
+    fontSize: 16,
+    flex: 1,
+  },
+  actionButton: {
+    padding: 8,
+    marginLeft: 10,
+  },
+  actionImage: {
+    width: 24,
+    height: 24,
+    resizeMode: 'contain',
   },
   noStudentsText: {
     textAlign: 'center',

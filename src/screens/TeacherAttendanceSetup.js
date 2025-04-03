@@ -9,7 +9,9 @@ const TeacherAttendanceSetup = ({navigation}) => {
   const {user} = useAuth();
   const classes = user.classes || [];
   const [attendanceObject, setAttendanceObject] = useState({
-    selectedClass: classes[0]?.classCode ? classes[0].classCode : 'Please Add Classes in \'Manage Classes\'',
+    selectedClass: classes[0]?.classCode
+      ? classes[0].classCode
+      : "Please Add Classes in 'Manage Classes'",
     classSize: 'small',
   });
   const [formError, setFormError] = useState(false);
@@ -26,7 +28,7 @@ const TeacherAttendanceSetup = ({navigation}) => {
       classSize: attendanceObject.classSize,
     };
 
-    console.log(data);
+    // console.log(data);
 
     navigation.navigate('TeacherBluetoothScanScreen', {
       data: data,

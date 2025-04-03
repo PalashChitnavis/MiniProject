@@ -1,5 +1,5 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import React, { useState, useEffect } from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   View,
   Text,
@@ -10,7 +10,7 @@ import {
   ScrollView,
 } from 'react-native';
 import ButtonComponent from '../components/ButtonComponent';
-import { TouchableOpacity, Image } from 'react-native';
+import {TouchableOpacity, Image} from 'react-native';
 
 import {
   isBluetoothEnabled,
@@ -23,12 +23,12 @@ import {
   upsertClassesTeacher,
   upsertTeacherAttendance,
 } from '../services/DatabaseService';
-import { useAuth } from '../contexts/AuthContext';
+import {useAuth} from '../contexts/AuthContext';
 import AttendanceSection from '../components/AttendanceSection';
 
-const TeacherBluetoothScanScreen = ({ route, navigation }) => {
-  const { data } = route.params;
-  const { user } = useAuth();
+const TeacherBluetoothScanScreen = ({route, navigation}) => {
+  const {data} = route.params;
+  const {user} = useAuth();
   const [isBroadcasting, setIsBroadcasting] = useState(false);
   const [circles] = useState([
     new Animated.Value(0),
@@ -36,26 +36,22 @@ const TeacherBluetoothScanScreen = ({ route, navigation }) => {
     new Animated.Value(0.4),
   ]);
   const [classData, setClassData] = useState([]);
-  const { classCode, teacherCode, classSize } = data;
-
+  const {classCode, teacherCode, classSize} = data;
 
   useEffect(() => {
-    async function getClassData(){
+    async function getClassData() {
       const res = await upsertClassesTeacher(teacherCode, classCode);
       setClassData(res);
     }
 
     getClassData();
+  }, []);
 
-  },[]);
-
-  useEffect(() => {
-    console.log(classData);
-  },[classData]);
+  // useEffect(() => {
+  //   console.log(classData);
+  // },[classData]);
 
   const [attendanceData, setAttendanceData] = useState([]);
-
-
 
   const handleRefresh = async () => {
     console.log('Refresh button clicked');
@@ -87,14 +83,13 @@ const TeacherBluetoothScanScreen = ({ route, navigation }) => {
 
       Animated.stagger(600, animations).start();
     } else {
-      circles.forEach((circle) => circle.setValue(0));
+      circles.forEach(circle => circle.setValue(0));
     }
   }, [isBroadcasting]);
 
-
-  // useEffect(()=>{
-  //   console.log(attendanceData);
-  // },[attendanceData]);
+  useEffect(() => {
+    // console.log(classData);
+  }, [classData]);
 
   const handleAttendancePress = async () => {
     const btEnabled = await isBluetoothEnabled();
@@ -112,10 +107,7 @@ const TeacherBluetoothScanScreen = ({ route, navigation }) => {
         classSize: classSize,
       };
 
-      await upsertTeacherAttendance(
-        classCode,
-        teacherCode,
-      );
+      await upsertTeacherAttendance(classCode, teacherCode);
 
       const started = await startBluetoothAdvertising(bluetoothData);
 
@@ -200,8 +192,7 @@ const TeacherBluetoothScanScreen = ({ route, navigation }) => {
             <TouchableOpacity
               onPress={handleRefresh}
               style={styles.refreshButton}
-              activeOpacity={0.7}
-            >
+              activeOpacity={0.7}>
               <Image
                 source={require('../assets/images/refresh.png')}
                 style={styles.refreshIcon}
@@ -209,7 +200,12 @@ const TeacherBluetoothScanScreen = ({ route, navigation }) => {
               <Text style={styles.refreshText}>Refresh</Text>
             </TouchableOpacity>
           </View>
-          <AttendanceSection attendanceData={attendanceData} classData={classData.students}/>
+          <AttendanceSection
+            attendanceData={attendanceData}
+            classData={classData.students}
+            teacherCode={classData.teacherCode}
+            classCode={classData.classCode}
+          />
         </View>
       </View>
       {/* Action Button - moved outside ScrollView */}
@@ -299,7 +295,7 @@ const styles = StyleSheet.create({
     padding: 10,
     width: '100%',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.1,
     shadowRadius: 6,
   },
@@ -326,7 +322,7 @@ const styles = StyleSheet.create({
     minHeight: 200,
     maxHeight: 300,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.1,
     shadowRadius: 6,
     elevation: 10,
@@ -379,7 +375,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#2980b9',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.1,
     shadowRadius: 6,
     elevation: 10,
