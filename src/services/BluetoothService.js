@@ -40,9 +40,14 @@ const isBluetoothEnabled = async () => {
     }
 
     const state = await manager.state();
-    console.log('Bluetooth State:', state);
-
-    return state === 'PoweredOn';
+    if (state === 'PoweredOff') {
+      console.log('Bluetooth is off, please enable it');
+      return false;
+    } else if (state !== 'PoweredOn') {
+      console.log('Bluetooth in transition state:', state);
+      return false;
+    }
+    return true;
   } catch (error) {
     console.error('Error checking Bluetooth state:', error);
     return false;
@@ -57,6 +62,9 @@ export const startBluetoothAdvertising = async (bluetoothData) => {
     }
 
     const { classCode, teacherCode, classSize } = bluetoothData;
+    if (!classCode || !teacherCode || !['small', 'medium', 'large'].includes(classSize)) {
+      throw new Error('Invalid bluetoothData: classCode, teacherCode, and valid classSize required');
+    }
 
     const newClassSize = classSize === 'small' ? 'S' : classSize === 'medium' ? 'M' : 'L';
 

@@ -8,7 +8,7 @@ import {
   stopBluetoothScanning,
 } from '../services/BluetoothService';
 import {useAuth} from '../contexts/AuthContext';
-import { putAttendance } from '../services/DatabaseService';
+import { putAttendance, studentPutsAttendance } from '../services/DatabaseService';
 
 const StudentBluetoothScanScreen = ({navigation}) => {
   const {user} = useAuth();
@@ -71,6 +71,7 @@ const StudentBluetoothScanScreen = ({navigation}) => {
   };
 
   const handleDeviceFound = bluetoothData => {
+    handleStopScan();
     Alert.alert(
       'Device Found',
       ` 
@@ -82,7 +83,7 @@ const StudentBluetoothScanScreen = ({navigation}) => {
         {
           text: 'Mark',
           onPress: async () => {
-            const result = await putAttendance(bluetoothData.teacherCode,bluetoothData.classCode,user.email);
+            const result = await studentPutsAttendance(bluetoothData.teacherCode,bluetoothData.classCode,user.email);
             if(!result){
               Alert.alert('Error','Error marking attendance',[{
                 text: 'Rescan',

@@ -145,6 +145,17 @@ export const updateUser = async user => {
 
 export const studentPutsAttendance = async (teacherCode, classCode, studentEmail) => {
   try {
+    // Input validation
+    if (!teacherCode || typeof teacherCode !== 'string' || teacherCode.trim() === '') {
+      throw new Error('teacherCode is required and must be a non-empty string');
+    }
+    if (!classCode || typeof classCode !== 'string' || classCode.trim() === '') {
+      throw new Error('classCode is required and must be a non-empty string');
+    }
+    if (!studentEmail || typeof studentEmail !== 'string' || !studentEmail.includes('@')) {
+      throw new Error('studentEmail is required and must be a valid email');
+    }
+
     const emailKey = studentEmail.replace(/[@.]/g, '_');
     const studentAttendanceRef = firestore().collection('student_attendance').doc(emailKey);
     const teacherAttendanceRef = firestore().collection('teacher_attendance').doc(`${classCode}_${teacherCode}`);
@@ -170,17 +181,25 @@ export const studentPutsAttendance = async (teacherCode, classCode, studentEmail
         });
       } else {
         const studentData = studentDoc.data();
-        const classes = studentData.classes || [];
+        // Ensure classes is an array, default to empty if undefined or invalid
+        const classes = Array.isArray(studentData.classes) ? studentData.classes : [];
+        console.log('Student classes:', classes); // Debug log
+
         const classIndex = classes.findIndex(
           (cls) => cls.classCode === classCode && cls.teacherCode === teacherCode
         );
 
         if (classIndex >= 0) {
           // Class exists, update datesPresent
-          const datesPresent = classes[classIndex].datesPresent || [];
-          // Check for duplicate attendance
-          if (datesPresent.some((d) => d.toDate().toDateString() === currentDate.toDate().toDateString())) {
-            throw new Error('Attendance already recorded for this date');
+          const datesPresent = Array.isArray(classes[classIndex].datesPresent)
+            ? classes[classIndex].datesPresent
+            : [];
+          if (
+            datesPresent.some(
+              (d) => d.toDate().toDateString() === currentDate.toDate().toDateString()
+            )
+          ) {
+            throw new Error('Attendance already recorded for this date in student record');
           }
           transaction.update(studentAttendanceRef, {
             [`classes.${classIndex}.datesPresent`]: firestore.FieldValue.arrayUnion(currentDate),
@@ -210,18 +229,24 @@ export const studentPutsAttendance = async (teacherCode, classCode, studentEmail
         });
       } else {
         const teacherData = teacherDoc.data();
-        const classes = teacherData.classes || [];
+        // Ensure classes is an array, default to empty if undefined or invalid
+        const classes = Array.isArray(teacherData.classes) ? teacherData.classes : [];
+        console.log('Teacher classes:', classes); // Debug log
+
         const classIndex = classes.findIndex(
           (cls) => cls.date.toDate().toDateString() === currentDate.toDate().toDateString()
         );
 
         if (classIndex >= 0) {
           // Date exists, update present array
-          const present = classes[classIndex].present || [];
+          const present = Array.isArray(classes[classIndex].present)
+            ? classes[classIndex].present
+            : [];
           if (present.includes(studentEmail)) {
-            throw new Error('Student already marked present for this date');
+            throw new Error('Student already marked present for this date in teacher record');
           }
           transaction.update(teacherAttendanceRef, {
+            [`classes.${classIndex}.date`]: currentDate,
             [`classes.${classIndex}.present`]: firestore.FieldValue.arrayUnion(studentEmail),
           });
         } else {
@@ -236,7 +261,7 @@ export const studentPutsAttendance = async (teacherCode, classCode, studentEmail
       }
     });
 
-    console.log('Attendance recorded successfully in both student and teacher records!');
+    console.log('Attendance recorded successfully for', studentEmail, 'in class', classCode);
     return true;
   } catch (error) {
     console.error('Error recording student attendance:', error.message);
@@ -384,7 +409,7 @@ export const upsertTeacherAttendance = async (classCode, teacherCode) => {
         const classes = teacherData.classes || [];
         // Check for duplicate date
         if (classes.some((cls) => cls.date.toDate().toDateString() === currentDate.toDate().toDateString())) {
-          throw new Error('Class already recorded for this date in teacher_attendance');
+          console.log('Class already recorded for this date in teacher_attendance');
         }
         transaction.update(teacherAttendanceRef, {
           classes: firestore.FieldValue.arrayUnion(newClass),
