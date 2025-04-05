@@ -296,12 +296,11 @@ const ClassManagementTeacher = () => {
                 <Text style={styles.classCode}>{cls.classCode}</Text>
               </View>
               <View style={styles.classActions}>
-                <TouchableOpacity onPress={() => handleEdit(cls, index)}>
+                {!(user.email === 'test_teacher@iiitm.ac.in' && cls.classCode === 'TEST_CLASS') && <><TouchableOpacity onPress={() => handleEdit(cls, index)}>
                   <Icon name="create-outline" size={20} color="#4a8cff" />
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => handleDelete(index)}>
-                  <Icon name="trash-outline" size={20} color="#ff6b6b" />
-                </TouchableOpacity>
+                </TouchableOpacity><TouchableOpacity onPress={() => handleDelete(index)}>
+                    <Icon name="trash-outline" size={20} color="#ff6b6b" />
+                  </TouchableOpacity></>}
               </View>
             </View>
           ))

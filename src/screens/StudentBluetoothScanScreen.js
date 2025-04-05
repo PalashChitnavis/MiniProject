@@ -10,7 +10,7 @@ import {
 import {useAuth} from '../contexts/AuthContext';
 import { putAttendance } from '../services/DatabaseService';
 
-const BluetoothScanScreen = ({navigation}) => {
+const StudentBluetoothScanScreen = ({navigation}) => {
   const {user} = useAuth();
   const [isScanning, setIsScanning] = useState(false);
   const [deviceFound, setDeviceFound] = useState(false);
@@ -205,4 +205,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default BluetoothScanScreen;
+export default StudentBluetoothScanScreen;

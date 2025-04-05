@@ -9,9 +9,9 @@ import StudentScreen from '../screens/StudentScreen';
 import TeacherScreen from '../screens/TeacherScreen';
 import TeacherAttendanceSetup from '../screens/TeacherAttendanceSetup';
 import TeacherBluetoothScanScreen from '../screens/TeacherBluetoothScanScreen';
-import BluetoothScanScreen from '../screens/BluetoothScanScreen';
 import ClassManagementTeacher from '../screens/ClassManagementTeacher';
 import ClassManagementStudent from '../screens/ClassManagementStudent';
+import StudentBluetoothScanScreen from '../screens/StudentBluetoothScanScreen';
 
 const Stack = createStackNavigator();
 
@@ -29,7 +29,7 @@ const AppNavigator = () => {
           <Stack.Screen name="ClassManagementStudent" component={ClassManagementStudent} />
           <Stack.Screen name="TeacherAttendanceSetup" component={TeacherAttendanceSetup} />
           <Stack.Screen name="TeacherBluetoothScanScreen" component={TeacherBluetoothScanScreen} />
-          <Stack.Screen name="BluetoothScanScreen" component={BluetoothScanScreen} />
+          <Stack.Screen name="StudentBluetoothScanScreen" component={StudentBluetoothScanScreen} />
           <Stack.Screen name="ClassManagementTeacher" component={ClassManagementTeacher} />
         </Stack.Navigator>
       </NavigationContainer>

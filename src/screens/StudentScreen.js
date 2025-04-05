@@ -29,7 +29,7 @@ const StudentScreen = ({navigation}) => {
   const {user} = useAuth();
   // Placeholder functions
   const handleGiveAttendance = () => {
-    navigation.navigate('BluetoothScanScreen');
+    navigation.navigate('StudentBluetoothScanScreen');
   };
   const handleEditClasses = () => {
     navigation.navigate('ClassManagementStudent');
@@ -157,7 +157,6 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     justifyContent: 'space-around',
-    alignItems: 'center',
     padding: 10,
   },
   buttonImage: {

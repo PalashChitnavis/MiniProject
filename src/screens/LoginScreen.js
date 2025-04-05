@@ -65,7 +65,7 @@ const LoginScreen = () => {
       const dbuser = {
         batch: '2022',
         classes: [{
-          teacherCode: 'T_T',
+          teacherCode: 'TT',
           classCode: 'TEST_CLASS',
         }],
         course: 'imt',
@@ -77,7 +77,7 @@ const LoginScreen = () => {
       setLoading(true);
       await createUser(dbuser);
       await storeUser(dbuser);
-      await addStudentToClass('TEST_CLASS', 'T_T', dbuser.email);
+      await addStudentToClass('TEST_CLASS', 'TT', dbuser.email);
       navigation.replace('Student');
       setIsLoggedIn(true);
       setLoading(false);

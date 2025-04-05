@@ -307,14 +307,14 @@ const ClassManagementStudent = () => {
                 <Text style={styles.classCode}>Class: {cls.classCode}</Text>
                 <Text style={styles.teacherCode}>Teacher: {cls.teacherCode}</Text>
               </View>
-              <View style={styles.classActions}>
+              {!(user.email.startsWith('test_student') && cls.classCode === 'TEST_CLASS') && <View style={styles.classActions}>
                 <TouchableOpacity onPress={() => handleEdit(cls, index)}>
                   <Icon name="create-outline" size={20} color="#4a8cff" />
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => handleDelete(index)}>
                   <Icon name="trash-outline" size={20} color="#ff6b6b" />
                 </TouchableOpacity>
-              </View>
+              </View>}
             </View>
           ))
         )}

@@ -1,3 +1,4 @@
+/* eslint-disable no-alert */
 import React, {useState} from 'react';
 import {
   View,
@@ -7,13 +8,14 @@ import {
   StyleSheet,
   Image,
 } from 'react-native';
-import {cancelAttendance, putAttendance} from '../services/DatabaseService';
+import {teacherCancelsAttendance, studentPutsAttendance} from '../services/DatabaseService';
 
 const AttendanceSection = ({
   attendanceData,
   classData,
   teacherCode,
   classCode,
+  handleRefresh,
 }) => {
   const [activeTab, setActiveTab] = useState('present');
 
@@ -24,8 +26,9 @@ const AttendanceSection = ({
 
   const handleCancelAttendance = async studentEmail => {
     try {
-      await cancelAttendance(teacherCode, classCode, studentEmail);
-      alert('Attendance cancelled successfully');
+      await teacherCancelsAttendance(teacherCode, classCode, studentEmail);
+      console.log('Attendance cancelled successfully');
+      await handleRefresh();
     } catch (error) {
       alert('Error cancelling attendance: ' + error.message);
     }
@@ -34,8 +37,9 @@ const AttendanceSection = ({
   // You'll need to implement this function
   const handleMarkPresent = async studentEmail => {
     try {
-      await putAttendance(teacherCode, classCode, studentEmail);
-      alert('Attendance marked successfully');
+      await studentPutsAttendance(teacherCode, classCode, studentEmail);
+      console.log('Attendance marked successfully');
+      await handleRefresh();
     } catch (error) {
       alert('Error marking attendance: ' + error.message);
     }

@@ -18,8 +18,7 @@ import {
   stopBluetoothAdvertising,
 } from '../services/BluetoothService';
 import {
-  createTeacherAttendance,
-  getAttendanceTeacher,
+  getAttendanceTeacherCurrentDate,
   upsertClassesTeacher,
   upsertTeacherAttendance,
 } from '../services/DatabaseService';
@@ -55,7 +54,7 @@ const TeacherBluetoothScanScreen = ({route, navigation}) => {
 
   const handleRefresh = async () => {
     console.log('Refresh button clicked');
-    const resp = await getAttendanceTeacher(teacherCode, classCode);
+    const resp = await getAttendanceTeacherCurrentDate(teacherCode, classCode);
     console.log(resp);
     setAttendanceData(resp);
     console.log(attendanceData);
@@ -112,7 +111,7 @@ const TeacherBluetoothScanScreen = ({route, navigation}) => {
       const started = await startBluetoothAdvertising(bluetoothData);
 
       if (started) {
-        const resp = await getAttendanceTeacher(teacherCode, classCode);
+        const resp = await getAttendanceTeacherCurrentDate(teacherCode, classCode);
         setAttendanceData(resp);
         setIsBroadcasting(true);
       }
@@ -205,6 +204,7 @@ const TeacherBluetoothScanScreen = ({route, navigation}) => {
             classData={classData.students}
             teacherCode={classData.teacherCode}
             classCode={classData.classCode}
+            handleRefresh={handleRefresh}
           />
         </View>
       </View>
