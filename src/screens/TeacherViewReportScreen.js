@@ -1,5 +1,5 @@
 // TeacherScreen.js
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {
   View,
   Text,
@@ -9,11 +9,92 @@ import {
   SafeAreaView,
   ScrollView,
 } from 'react-native';
+import {useAuth} from '../contexts/AuthContext';
+import {
+  getTeachertAttendanceReport,
+  upsertClassesTeacher,
+} from '../services/DatabaseService';
 import {Calendar} from 'react-native-calendars';
 
 const TeacherViewReportScreen = () => {
+  const {user} = useAuth();
+  const [attendanceData, setAttendanceData] = useState([]);
+
   const [selectedClass, setSelectedClass] = useState(null);
   const [activeTab, setActiveTab] = useState('attendance');
+
+  useEffect(() => {
+    console.log(attendanceData);
+  }, [attendanceData]);
+
+  useEffect(() => {
+    const fetchAttendanceReports = async () => {
+      if (user?.type === 'teacher' && user?.classes?.length > 0) {
+        const {teacherCode, classes} = user;
+
+        try {
+          // Fetch attendance reports
+          const attendanceReports = await Promise.all(
+            classes.map(async classItem => {
+              const report = await getTeachertAttendanceReport(
+                classItem.classCode,
+                teacherCode,
+              );
+              return {
+                classCode: classItem.classCode,
+                report,
+              };
+            }),
+          );
+
+          // Fetch class data: enrolled students and dates
+          const classResponses = await Promise.all(
+            classes.map(cls =>
+              upsertClassesTeacher(teacherCode, cls.classCode),
+            ),
+          );
+
+          // Merge and update each class item
+          const mergedResults = attendanceReports.map((item, index) => {
+            const response = classResponses[index];
+            const enrolledStudents = response?.students || [];
+
+            // Add `absent` array to each report.classes element
+            const updatedClasses =
+              item?.report?.classes?.map(entry => {
+                const present = entry.present || [];
+                const absent = enrolledStudents.filter(
+                  student => !present.includes(student),
+                );
+                return {
+                  ...entry,
+                  absent, // ⬅️ added here
+                };
+              }) || [];
+
+            return {
+              ...item,
+              report: {
+                ...item.report,
+                classes: updatedClasses, // ⬅️ updated classes with absent info
+              },
+              datesConducted: response?.dates || [],
+              enrolledStudents,
+            };
+          });
+
+          setAttendanceData(mergedResults);
+        } catch (error) {
+          console.error(
+            'Failed to fetch attendance reports or class info:',
+            error,
+          );
+        }
+      }
+    };
+
+    fetchAttendanceReports();
+  }, [user]);
 
   // Sample data (will be replaced with your actual data)
   const classes = [
@@ -112,13 +193,13 @@ const TeacherViewReportScreen = () => {
       onPress={() => setSelectedClass(item)}>
       <View style={styles.classCardContent}>
         <View>
-          <Text style={styles.className}>{item.name}</Text>
-          <Text style={styles.classCode}>{item.code}</Text>
-          <View style={styles.classStats}>
+          <Text style={styles.className}>{item.classCode}</Text>
+          <Text style={styles.classCode}>{user.teacherCode}</Text>
+          {/* <View style={styles.classStats}>
             <Text style={styles.classStatsText}>{item.students} students</Text>
             <View style={styles.statsDivider} />
             <Text style={styles.classStatsText}>Next: {item.nextClass}</Text>
-          </View>
+          </View> */}
         </View>
         <Text style={styles.arrowIcon}>→</Text>
       </View>
@@ -129,45 +210,49 @@ const TeacherViewReportScreen = () => {
     <View style={styles.sessionCard}>
       <View style={styles.sessionHeader}>
         <Text style={styles.sessionDate}>{item.date}</Text>
-        <Text style={styles.sessionTopic}>{item.topic}</Text>
+        {/* <Text style={styles.sessionTopic}>{item.topic}</Text> */}
       </View>
 
       <View style={styles.attendanceSummary}>
         <View style={styles.attendanceStat}>
-          <Text style={styles.statValue}>{item.present}</Text>
+          <Text style={styles.statValue}>{item.present.length}</Text>
           <Text style={styles.statLabel}>Present</Text>
         </View>
         <View style={styles.attendanceStat}>
-          <Text style={styles.statValue}>{item.absent}</Text>
+          <Text style={styles.statValue}>
+            {selectedClass?.enrolledStudents.length - item.present.length}
+          </Text>
           <Text style={styles.statLabel}>Absent</Text>
         </View>
         <View style={styles.attendanceStat}>
           <Text style={styles.statValue}>
-            {Math.round((item.present / (item.present + item.absent)) * 100)}%
+            {Math.round(
+              (item.present.length / selectedClass?.enrolledStudents.length) *
+                100,
+            )}
+            %
           </Text>
           <Text style={styles.statLabel}>Attendance</Text>
         </View>
       </View>
 
       <Text style={styles.studentListHeader}>Students</Text>
-      {item.students.map(student => (
+      {item?.present?.map(student => (
         <View key={student.id} style={styles.studentRow}>
-          <Text style={styles.studentName}>{student.name}</Text>
-          <View
-            style={[
-              styles.statusBadge,
-              student.status === 'present'
-                ? styles.presentBadge
-                : styles.absentBadge,
-            ]}>
-            <Text
-              style={[
-                styles.statusText,
-                student.status === 'present'
-                  ? styles.presentText
-                  : styles.absentText,
-              ]}>
-              {student.status === 'present' ? 'Present' : 'Absent'}
+          <Text style={styles.studentName}>{student}</Text>
+          <View style={[styles.statusBadge, styles.presentBadge]}>
+            <Text style={[styles.statusText, styles.presentText]}>
+              'Present'
+            </Text>
+          </View>
+        </View>
+      ))}
+      {item?.absent?.map(student => (
+        <View key={student.id} style={styles.studentRow}>
+          <Text style={styles.studentName}>{student}</Text>
+          <View style={[styles.statusBadge, styles.absentBadge]}>
+            <Text style={[styles.statusText, styles.absentText]}>
+              'Present'
             </Text>
           </View>
         </View>
@@ -178,15 +263,15 @@ const TeacherViewReportScreen = () => {
   const renderStudentItem = ({item}) => (
     <View style={styles.studentCard}>
       <View style={styles.studentInfo}>
-        <Text style={styles.studentName}>{item.name}</Text>
-        <Text style={styles.studentId}>Roll No: {item.rollNo}</Text>
+        <Text style={styles.studentName}>{item}</Text>
+        {/* <Text style={styles.studentId}>Roll No: {item.rollNo}</Text> */}
       </View>
       <View
         style={[
           styles.attendanceIndicator,
-          {backgroundColor: getAttendanceColor(item.attendance)},
+          //   {backgroundColor: getAttendanceColor(item.attendance)},
         ]}>
-        <Text style={styles.attendanceText}>{item.attendance}%</Text>
+        {/* <Text style={styles.attendanceText}>{item.attendance}%</Text> */}
       </View>
     </View>
   );
@@ -207,7 +292,7 @@ const TeacherViewReportScreen = () => {
             <Text style={styles.headerTitle}>My Classes</Text>
           </View>
           <FlatList
-            data={classes}
+            data={attendanceData}
             renderItem={renderClassItem}
             keyExtractor={item => item.id}
             contentContainerStyle={styles.classesList}
@@ -217,19 +302,22 @@ const TeacherViewReportScreen = () => {
         // Class Detail Screen
         <>
           <View style={styles.header}>
-            <TouchableOpacity
+            {/* <TouchableOpacity
               style={styles.backButton}
               onPress={() => setSelectedClass(null)}>
               <Text style={styles.backButtonText}>←</Text>
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>{selectedClass.name}</Text>
-            <Text style={styles.classCode}>{selectedClass.code}</Text>
+            </TouchableOpacity> */}
+            <Text style={styles.headerTitle}>
+              {selectedClass.classCode}
+              {/* {console.log(selectedClass)} */}
+            </Text>
+            <Text style={styles.classCode}>{user.teacherCode}</Text>
           </View>
 
           <View style={styles.content}>
             {activeTab === 'attendance' ? (
               <FlatList
-                data={sessionData}
+                data={selectedClass?.report?.classes}
                 renderItem={renderSessionItem}
                 keyExtractor={item => item.id}
                 contentContainerStyle={styles.sessionsList}
@@ -239,30 +327,26 @@ const TeacherViewReportScreen = () => {
                 <View style={styles.classInfoCard}>
                   <Text style={styles.classInfoTitle}>Class Information</Text>
                   <View style={styles.classInfoRow}>
-                    <Text style={styles.infoLabel}>Class Name:</Text>
-                    <Text style={styles.infoValue}>{selectedClass.name}</Text>
+                    <Text style={styles.infoLabel}>Class Code:</Text>
+                    <Text style={styles.infoValue}>
+                      {selectedClass.classCode}
+                    </Text>
                   </View>
                   <View style={styles.classInfoRow}>
-                    <Text style={styles.infoLabel}>Class Code:</Text>
-                    <Text style={styles.infoValue}>{selectedClass.code}</Text>
+                    <Text style={styles.infoLabel}>Teacher Code:</Text>
+                    <Text style={styles.infoValue}>{user.teacherCode}</Text>
                   </View>
                   <View style={styles.classInfoRow}>
                     <Text style={styles.infoLabel}>Total Students:</Text>
                     <Text style={styles.infoValue}>
-                      {selectedClass.students}
-                    </Text>
-                  </View>
-                  <View style={styles.classInfoRow}>
-                    <Text style={styles.infoLabel}>Next Class:</Text>
-                    <Text style={styles.infoValue}>
-                      {selectedClass.nextClass}
+                      {selectedClass.enrolledStudents.length}
                     </Text>
                   </View>
                 </View>
 
                 <Text style={styles.enrolledTitle}>Enrolled Students</Text>
                 <FlatList
-                  data={enrolledStudents}
+                  data={selectedClass?.enrolledStudents}
                   renderItem={renderStudentItem}
                   keyExtractor={item => item.id}
                   contentContainerStyle={styles.enrolledList}
