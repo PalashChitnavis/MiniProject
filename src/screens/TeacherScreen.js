@@ -34,7 +34,9 @@ const TeacherScreen = ({navigation}) => {
   const handleManageClasses = () => {
     navigation.navigate('ClassManagementTeacher');
   };
-  const handleViewReports = () => console.log('View Reports pressed');
+  const handleViewReports = () => {
+    navigation.navigate('TeacherViewReportScreen');
+  };
   const handleLogout = async () => {
     try {
       await signOutUser();
@@ -56,7 +58,10 @@ const TeacherScreen = ({navigation}) => {
 
   const SectionButton = ({image, title, onPress, color}) => (
     <TouchableOpacity
-      style={[styles.button, {backgroundColor: 'white', borderColor: color, shadowColor: color}]}
+      style={[
+        styles.button,
+        {backgroundColor: 'white', borderColor: color, shadowColor: color},
+      ]}
       onPress={onPress}>
       <View style={styles.buttonContent}>
         <Image source={image} style={styles.buttonImage} />

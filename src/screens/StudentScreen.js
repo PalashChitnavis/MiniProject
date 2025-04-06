@@ -35,7 +35,7 @@ const StudentScreen = ({navigation}) => {
     navigation.navigate('ClassManagementStudent');
   };
   const handleViewAttendance = () => {
-    navigation.navigate('StudentAttendanceReport');
+    navigation.navigate('StudentViewReportScreen');
   };
   const handleLogout = async () => {
     try {
