@@ -245,9 +245,15 @@ export const studentPutsAttendance = async (teacherCode, classCode, studentEmail
           if (present.includes(studentEmail)) {
             throw new Error('Student already marked present for this date in teacher record');
           }
+          const updatedClasses = [...teacherData.classes];
+          updatedClasses[classIndex] = {
+            ...updatedClasses[classIndex],
+            date: currentDate,
+            present: [...(updatedClasses[classIndex].present || []), studentEmail],
+          };
+
           transaction.update(teacherAttendanceRef, {
-            [`classes.${classIndex}.date`]: currentDate,
-            [`classes.${classIndex}.present`]: firestore.FieldValue.arrayUnion(studentEmail),
+            classes: updatedClasses,
           });
         } else {
           // New date for this class
@@ -386,62 +392,84 @@ export const upsertTeacherAttendance = async (classCode, teacherCode) => {
     // Use server timestamp for consistency
     const currentDate = getCurrentDate();
 
+    let result;
+
     await firestore().runTransaction(async (transaction) => {
       // Fetch both documents
       const teacherDoc = await transaction.get(teacherAttendanceRef);
       const classesDoc = await transaction.get(classesRef);
 
-      // 1. Update teacher_attendance
-      const newClass = {
-        date: currentDate,
-        present: [],
-      };
-
+      // 1. Handle teacher_attendance
       if (!teacherDoc.exists) {
         // First class ever for this teacher-class combo
-        transaction.set(teacherAttendanceRef, {
+        const newRecord = {
           teacherCode,
           classCode,
-          classes: [newClass],
-        });
+          classes: [{
+            date: currentDate,
+            present: [],
+          }],
+        };
+        transaction.set(teacherAttendanceRef, newRecord);
+        result = newRecord;
       } else {
         const teacherData = teacherDoc.data();
         const classes = teacherData.classes || [];
-        // Check for duplicate date
-        if (classes.some((cls) => cls.date === currentDate)) {
-          console.log('Class already recorded for this date in teacher_attendance');
+
+        // Check for existing class for this date
+        const existingClass = classes.find(cls => cls.date === currentDate);
+
+        if (existingClass) {
+          console.log('Using existing class record for this date');
+          result = {
+            ...teacherData,
+            existingDate: true,
+          };
+        } else {
+          // Add new class date
+          transaction.update(teacherAttendanceRef, {
+            classes: firestore.FieldValue.arrayUnion({
+              date: currentDate,
+              present: [],
+            }),
+          });
+          result = {
+            ...teacherData,
+            classes: [...classes, { date: currentDate, present: [] }],
+            existingDate: false,
+          };
         }
-        transaction.update(teacherAttendanceRef, {
-          classes: firestore.FieldValue.arrayUnion(newClass),
-        });
       }
 
-      // 2. Update classes
+      // 2. Handle classes collection (only add if new date)
       if (!classesDoc.exists) {
         // First class instance
         transaction.set(classesRef, {
           classCode,
           teacherCode,
           dates: [currentDate],
-          students: [], // Ensure schema consistency
+          students: [],
         });
       } else {
         const classesData = classesDoc.data();
         const dates = classesData.dates || [];
-        // Check for duplicate date
-        if (dates.some((d) => d === currentDate)) {
-          throw new Error('Class already recorded for this date in classes');
+
+        if (!dates.includes(currentDate)) {
+          transaction.update(classesRef, {
+            dates: firestore.FieldValue.arrayUnion(currentDate),
+          });
         }
-        transaction.update(classesRef, {
-          dates: firestore.FieldValue.arrayUnion(currentDate),
-        });
       }
     });
 
-    console.log('Teacher attendance and class record updated successfully');
-    return true; // Consistent return value
+    console.log('Teacher attendance processed successfully');
+    return result || {
+      status: 'success',
+      message: 'Attendance processed',
+      date: currentDate,
+    };
   } catch (error) {
-    console.error('Error upserting teacher attendance:', error.message);
+    console.error('Error in upsertTeacherAttendance:', error.message);
     throw error;
   }
 };
@@ -470,14 +498,12 @@ export const getAttendanceTeacherCurrentDate = async (teacherCode, classCode) =>
 
     const data = docSnapshot.data();
 
-    // Check for valid classes array
-    if (!Array.isArray(data.classes)) {
-      console.warn(`Invalid or missing classes array for ${classCode}_${teacherCode}`);
-      return [];
-    }
 
     // Use server-aligned current date
     const currentDate = getCurrentDate();
+
+    console.log(currentDate);
+    console.log(data);
 
     // Find today's class (match by day, ignoring time)
     const todaysClass = data.classes.find(
@@ -610,10 +636,45 @@ export const getStudentAttendanceReport = async (studentEmail) => {
       // throw new Error('Email key collision detected');
     }
 
-    console.log(`User fetched successfully for emailKey: ${emailKey}`);
+    console.log(`student attendance fetched successfully for emailKey: ${emailKey}`);
     return { id: emailKey, ...userData }; // Return data with ID
   } catch (error) {
     console.error('Error fetching user:', error.message);
+    throw error;
+  }
+};
+
+export const getTeachertAttendanceReport = async (classCode, teacherCode) => {
+  try {
+    // Validate input
+    if (!classCode || !teacherCode) {
+      throw new Error('Class Code and Teacher Code is required');
+    }
+
+    // Preserve your email key transformation
+    const attendanceRef = firestore().collection('teacher_attendance').doc(`${classCode}_${teacherCode}`);
+
+    // Fetch the document
+    const docSnapshot = await attendanceRef.get();
+
+    if (!docSnapshot.exists) {
+      console.log(`No user found for classCode and teacherCode: ${classCode}_${teacherCode}`);
+      return null; // Consistent with original behavior
+    }
+
+    const userData = docSnapshot.data();
+
+    // Optional: Verify the email matches the input to detect collisions
+    if (userData.classCode !== classCode && userData.teacherCode !== teacherCode) {
+      console.warn(`Email key collision detected: ${classCode}_${teacherCode} maps to ${userData.classCode}, not ${classCode}`);
+      // You could throw an error here if collisions are critical
+      // throw new Error('Email key collision detected');
+    }
+
+    console.log('Teacher Attendance fetched successfully');
+    return { ...userData }; // Return data with ID
+  } catch (error) {
+    console.error('Error fetching teacher attendance:', error.message);
     throw error;
   }
 };
@@ -629,4 +690,4 @@ const getCurrentDate = () => {
 
   const formattedDate = `${day}/${month}/${year}`; // "06/04/2025"
   return formattedDate;
-}
+};
