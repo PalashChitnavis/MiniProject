@@ -251,9 +251,7 @@ const TeacherViewReportScreen = () => {
         <View key={student.id} style={styles.studentRow}>
           <Text style={styles.studentName}>{student}</Text>
           <View style={[styles.statusBadge, styles.absentBadge]}>
-            <Text style={[styles.statusText, styles.absentText]}>
-              'Present'
-            </Text>
+            <Text style={[styles.statusText, styles.absentText]}>'Absent'</Text>
           </View>
         </View>
       ))}

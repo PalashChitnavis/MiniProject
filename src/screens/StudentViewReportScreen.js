@@ -227,23 +227,13 @@ const StudentViewReportScreen = () => {
                   <View
                     style={[styles.statusDot, {backgroundColor: '#F44336'}]}
                   />
-                  <Text style={styles.dateText}>{formatDate(item.date)}</Text>
+                  <Text style={styles.dateText}>{formatDate2(item.date)}</Text>
                 </View>
               );
           })}
         </View>
       </View>
     );
-  };
-
-  const formatDate = dateString => {
-    const options = {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    };
-    return new Date(dateString).toLocaleDateString('en-US', options);
   };
 
   const getOverAllAttendancePercentage = () => {
