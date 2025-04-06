@@ -161,7 +161,7 @@ export const studentPutsAttendance = async (teacherCode, classCode, studentEmail
     const teacherAttendanceRef = firestore().collection('teacher_attendance').doc(`${classCode}_${teacherCode}`);
 
     // Use server timestamp for consistency
-    const currentDate = firestore.Timestamp.now();
+    const currentDate = getCurrentDate();
 
     await firestore().runTransaction(async (transaction) => {
       // Fetch both documents
@@ -196,7 +196,7 @@ export const studentPutsAttendance = async (teacherCode, classCode, studentEmail
             : [];
           if (
             datesPresent.some(
-              (d) => d.toDate().toDateString() === currentDate.toDate().toDateString()
+              (d) => d === currentDate
             )
           ) {
             throw new Error('Attendance already recorded for this date in student record');
@@ -234,7 +234,7 @@ export const studentPutsAttendance = async (teacherCode, classCode, studentEmail
         console.log('Teacher classes:', classes); // Debug log
 
         const classIndex = classes.findIndex(
-          (cls) => cls.date.toDate().toDateString() === currentDate.toDate().toDateString()
+          (cls) => cls.date === currentDate
         );
 
         if (classIndex >= 0) {
@@ -276,7 +276,7 @@ export const teacherCancelsAttendance = async (teacherCode, classCode, studentEm
     const classKey = `${classCode}_${teacherCode}`;
 
     // Get current date (server time)
-    const currentDate = firestore.Timestamp.now();
+    const currentDate = getCurrentDate();
 
     // Get references to both documents
     const studentAttendanceRef = firestore().collection('student_attendance').doc(studentKey);
@@ -306,14 +306,14 @@ export const teacherCancelsAttendance = async (teacherCode, classCode, studentEm
 
       // Match date by day only (ignore time)
       const dateIndex = datesPresent.findIndex(
-        (date) => date.toDate().toDateString() === currentDate.toDate().toDateString()
+        (date) => date === currentDate
       );
       if (dateIndex === -1) {
         throw new Error('Attendance not found for the specified date');
       }
 
       const updatedDates = datesPresent.filter(
-        (date) => date.toDate().toDateString() !== currentDate.toDate().toDateString()
+        (date) => date !== currentDate
       );
 
       if (updatedDates.length === 0) {
@@ -338,7 +338,7 @@ export const teacherCancelsAttendance = async (teacherCode, classCode, studentEm
 
       // Match date by day only (ignore time)
       const teacherClassIndex = teacherClasses.findIndex(
-        (cls) => cls.date.toDate().toDateString() === currentDate.toDate().toDateString()
+        (cls) => cls.date === currentDate
       );
 
       if (teacherClassIndex === -1) {
@@ -384,7 +384,7 @@ export const upsertTeacherAttendance = async (classCode, teacherCode) => {
       .doc(`${classCode}_${teacherCode}`);
 
     // Use server timestamp for consistency
-    const currentDate = firestore.Timestamp.now();
+    const currentDate = getCurrentDate();
 
     await firestore().runTransaction(async (transaction) => {
       // Fetch both documents
@@ -408,7 +408,7 @@ export const upsertTeacherAttendance = async (classCode, teacherCode) => {
         const teacherData = teacherDoc.data();
         const classes = teacherData.classes || [];
         // Check for duplicate date
-        if (classes.some((cls) => cls.date.toDate().toDateString() === currentDate.toDate().toDateString())) {
+        if (classes.some((cls) => cls.date === currentDate)) {
           console.log('Class already recorded for this date in teacher_attendance');
         }
         transaction.update(teacherAttendanceRef, {
@@ -429,7 +429,7 @@ export const upsertTeacherAttendance = async (classCode, teacherCode) => {
         const classesData = classesDoc.data();
         const dates = classesData.dates || [];
         // Check for duplicate date
-        if (dates.some((d) => d.toDate().toDateString() === currentDate.toDate().toDateString())) {
+        if (dates.some((d) => d === currentDate)) {
           throw new Error('Class already recorded for this date in classes');
         }
         transaction.update(classesRef, {
@@ -477,11 +477,11 @@ export const getAttendanceTeacherCurrentDate = async (teacherCode, classCode) =>
     }
 
     // Use server-aligned current date
-    const currentDate = firestore.Timestamp.now();
+    const currentDate = getCurrentDate();
 
     // Find today's class (match by day, ignoring time)
     const todaysClass = data.classes.find(
-      (cls) => cls.date && cls.date.toDate().toDateString() === currentDate.toDate().toDateString()
+      (cls) => cls.date && cls.date === currentDate
     );
 
     if (!todaysClass) {
@@ -581,3 +581,52 @@ export const addStudentToClass = async (classCode, teacherCode, studentEmail) =>
     throw error;
   }
 };
+
+export const getStudentAttendanceReport = async (studentEmail) => {
+  try {
+    // Validate input
+    if (!studentEmail || typeof studentEmail !== 'string') {
+      throw new Error('Email is required and must be a string');
+    }
+
+    // Preserve your email key transformation
+    const emailKey = studentEmail.replace(/[@.]/g, '_');
+    const attendanceRef = firestore().collection('student_attendance').doc(emailKey);
+
+    // Fetch the document
+    const docSnapshot = await attendanceRef.get();
+
+    if (!docSnapshot.exists) {
+      console.log(`No user found for emailKey: ${emailKey}`);
+      return null; // Consistent with original behavior
+    }
+
+    const userData = docSnapshot.data();
+
+    // Optional: Verify the email matches the input to detect collisions
+    if (userData.studentEmail !== studentEmail) {
+      console.warn(`Email key collision detected: ${emailKey} maps to ${userData.studentEmail}, not ${studentEmail}`);
+      // You could throw an error here if collisions are critical
+      // throw new Error('Email key collision detected');
+    }
+
+    console.log(`User fetched successfully for emailKey: ${emailKey}`);
+    return { id: emailKey, ...userData }; // Return data with ID
+  } catch (error) {
+    console.error('Error fetching user:', error.message);
+    throw error;
+  }
+};
+
+
+const getCurrentDate = () => {
+  const currentDate = firestore.Timestamp.now();
+  const dateObj = currentDate.toDate(); // Convert to JavaScript Date object
+
+  const day = String(dateObj.getDate()).padStart(2, '0');
+  const month = String(dateObj.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
+  const year = dateObj.getFullYear();
+
+  const formattedDate = `${day}/${month}/${year}`; // "06/04/2025"
+  return formattedDate;
+}

@@ -34,7 +34,9 @@ const StudentScreen = ({navigation}) => {
   const handleEditClasses = () => {
     navigation.navigate('ClassManagementStudent');
   };
-  const handleViewAttendance = () => console.log('View Attendance pressed');
+  const handleViewAttendance = () => {
+    navigation.navigate('StudentAttendanceReport');
+  };
   const handleLogout = async () => {
     try {
       await signOutUser();
