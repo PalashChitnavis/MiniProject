@@ -1,13 +1,20 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { StyleSheet, View, TouchableOpacity, Text, Image, ActivityIndicator } from 'react-native';
+import { StyleSheet, View, TouchableOpacity, Text, Image, ActivityIndicator, Alert } from 'react-native';
 import { Camera, useCameraDevice } from 'react-native-vision-camera';
+import { useAuth } from '../contexts/AuthContext';
+import { useNavigation } from '@react-navigation/native';
+import { uploadUserPhoto } from '../services/ImageService';
+
 
 const CameraScreen = () => {
+    const { user } = useAuth();
   const device = useCameraDevice('front');
   const camera = useRef(null);
   const [isActive, setIsActive] = useState(true);
   const [permissionStatus, setPermissionStatus] = useState('not-determined');
   const [capturedPhoto, setCapturedPhoto] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
+    const navigation = useNavigation();
 
   useEffect(() => {
     checkPermissions();
@@ -16,7 +23,7 @@ const CameraScreen = () => {
   const checkPermissions = async () => {
     const status = await Camera.getCameraPermissionStatus();
     setPermissionStatus(status);
-    
+
     if (status !== 'granted') {
       const newStatus = await Camera.requestCameraPermission();
       setPermissionStatus(newStatus);
@@ -43,11 +50,20 @@ const CameraScreen = () => {
     setIsActive(true); // Resume camera
   };
 
-  const handleAccept = () => {
-    console.log('Accepted photo data:', capturedPhoto);
-    // Here you would typically save the photo
-    setCapturedPhoto(null);
-    setIsActive(true);
+  const handleAccept = async () => {
+    if (!capturedPhoto || !user?.email) {return;}
+
+    try {
+      setIsUploading(true);
+      const downloadUrl = await uploadUserPhoto(user.email, capturedPhoto.path);
+      console.log('Photo uploaded successfully:', downloadUrl);
+      navigation.goBack();
+    } catch (error) {
+      console.error('Failed to upload photo:', error);
+      Alert.alert('Error', 'Failed to upload photo. Please try again.');
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   if (!device) {
@@ -80,23 +96,29 @@ const CameraScreen = () => {
     <View style={styles.container}>
       {capturedPhoto ? (
         <View style={styles.previewContainer}>
-          <Image 
-            source={{ uri: `file://${capturedPhoto.path}` }} 
+          <Image
+            source={{ uri: `file://${capturedPhoto.path}` }}
             style={styles.previewImage}
             resizeMode="contain"
           />
           <View style={styles.previewControls}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[styles.actionButton, styles.retakeButton]}
               onPress={handleRetake}
+              disabled={isUploading}
             >
               <Text style={styles.buttonText}>Retake</Text>
             </TouchableOpacity>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[styles.actionButton, styles.acceptButton]}
               onPress={handleAccept}
+              disabled={isUploading}
             >
-              <Text style={styles.buttonText}>✓ Accept</Text>
+              {isUploading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.buttonText}>✓ Accept</Text>
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -110,7 +132,7 @@ const CameraScreen = () => {
             photo={true}
           />
           <View style={styles.captureControls}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.captureButton}
               onPress={capturePhoto}
             >
