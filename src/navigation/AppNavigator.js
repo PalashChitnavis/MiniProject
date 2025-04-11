@@ -15,6 +15,7 @@ import StudentBluetoothScanScreen from '../screens/StudentBluetoothScanScreen';
 import StudentAttendanceReport from '../screens/StudentAttendanceReport';
 import StudentViewReportScreen from '../screens/StudentViewReportScreen';
 import TeacherViewReportScreen from '../screens/TeacherViewReportScreen';
+import CameraScreen from '../screens/CameraScreen';
 
 const Stack = createStackNavigator();
 
@@ -58,6 +59,10 @@ const AppNavigator = () => {
           <Stack.Screen
             name="TeacherViewReportScreen"
             component={TeacherViewReportScreen}
+          />
+          <Stack.Screen
+            name="CameraScreen"
+            component={CameraScreen}
           />
         </Stack.Navigator>
       </NavigationContainer>
