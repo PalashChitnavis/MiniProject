@@ -1,4 +1,5 @@
 import firestore from '@react-native-firebase/firestore';
+import deviceInfo from 'react-native-device-info';
 
 export const createUser = async (user) => {
   try {
@@ -13,6 +14,9 @@ export const createUser = async (user) => {
       throw new Error('User type is required and must be "student" or "teacher"');
     }
 
+    // Get device unique ID (this will be different from MAC address but serves similar purpose)
+    const deviceId = await deviceInfo.getUniqueId();
+
     // Preserve your email key transformation
     const emailKey = user.email.replace(/[@.]/g, '_');
     const userRef = firestore().collection('users').doc(emailKey);
@@ -22,11 +26,12 @@ export const createUser = async (user) => {
     await firestore().runTransaction(async (transaction) => {
       const docSnapshot = await transaction.get(userRef);
 
-      // Prepare the user data with defaults for optional fields
+      // Prepare the user data with device ID
       const userData = {
         email: user.email,
         type: user.type,
-        name: user.name || '', // Default to empty string if not provided
+        name: user.name || '',
+        deviceId, // Store the device ID
         ...(user.type === 'student' && {
           batch: user.batch || '',
           rollNumber: user.rollNumber || '',
@@ -51,7 +56,7 @@ export const createUser = async (user) => {
     });
 
     console.log(`User ${emailKey} created or updated successfully`);
-    return result; // Return the full user data
+    return result;
   } catch (error) {
     console.error('Error creating or updating user:', error.message);
     throw error;

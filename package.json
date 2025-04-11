@@ -31,6 +31,7 @@
     "react-native-ble-manager": "^12.1.4",
     "react-native-ble-plx": "^3.5.0",
     "react-native-calendars": "^1.1310.0",
+    "react-native-device-info": "^14.0.4",
     "react-native-gesture-handler": "^2.24.0",
     "react-native-prompt-android": "^1.1.0",
     "react-native-reanimated": "^3.17.1",
