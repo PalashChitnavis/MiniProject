@@ -114,19 +114,42 @@ const CameraScreen = ({route}) => {
     try {
       setIsUploading(true);
       const dbUser = await getUser(user.email);
+
+      console.log('Retrieved user from Firebase:', dbUser); // Debug log
+
       if (!dbUser.photoUrl) {
         throw new Error('No reference photo found');
       }
+
+      // Check if deviceId exists in user document
+      if (!dbUser.deviceId) {
+        console.warn('No deviceId found in user document');
+        Alert.alert(
+          'Verification Failed',
+          'This account is not properly registered on this device'
+        );
+        return;
+      }
+
       const deviceId = await deviceInfo.getUniqueId();
       const firebaseId = dbUser.deviceId;
-      if(deviceId !== firebaseId) {
-          Alert.alert('Verification Failed', `Device ID mismatch. Original Device : ${firebaseId}, Current Device : ${deviceId}`);
-          return;
+
+      console.log(`Device IDs - Current: ${deviceId}, Firebase: ${firebaseId}`); // Debug log
+
+      if (deviceId !== firebaseId) {
+        Alert.alert(
+          'Verification Failed',
+          `Device ID mismatch. Original Device: ${firebaseId}, Current Device: ${deviceId}`
+        );
+        return;
       }
-      // setUploadStatus('uploading');
+
       setUploadStatus('processing');
+
+      // Rest of your image processing code...
       const firebaseImageResponse = await fetch(dbUser.photoUrl);
       const firebaseImageBlob = await firebaseImageResponse.blob();
+
       const [sourceBase64, targetBase64] = await Promise.all([
         new Promise(resolve => {
           const reader = new FileReader();
@@ -139,7 +162,7 @@ const CameraScreen = ({route}) => {
       ]);
 
       const result = await compareFaces(sourceBase64, targetBase64);
-      console.log(result);
+      console.log('Face comparison result:', result);
 
       const onPhotoVerified = route.params?.onPhotoVerified;
       if (onPhotoVerified) {
@@ -149,15 +172,17 @@ const CameraScreen = ({route}) => {
       } else {
         Alert.alert(
           'Verification Failed',
-          `Photo did not match (${
-            result.similarity?.toFixed(1) || 'unknown'
-          }% similarity)`,
+          `Photo did not match (${result.similarity?.toFixed(1) || 'unknown'}% similarity)`
         );
       }
+
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error in handleAcceptAttendance:', error);
       setUploadStatus(null);
-      Alert.alert('Error', 'Failed to complete the process. Please try again.');
+      Alert.alert(
+        'Error',
+        error.message || 'Failed to complete the process. Please try again.'
+      );
     } finally {
       setIsUploading(false);
     }
