@@ -9,7 +9,6 @@ import {
 } from '../services/BluetoothService';
 import {useAuth} from '../contexts/AuthContext';
 import { studentPutsAttendance } from '../services/DatabaseService';
-import deviceInfo from 'react-native-device-info';
 
 
 const StudentBluetoothScanScreen = ({navigation}) => {
@@ -115,13 +114,7 @@ const StudentBluetoothScanScreen = ({navigation}) => {
             navigation.navigate('CameraScreen', {
               first: false,
               onPhotoVerified: async (isVerified) => {
-                const deviceId = await deviceInfo.getUniqueId();
-                const firebaseId = user.deviceId;
-                if(deviceId !== firebaseId) {
-                  Alert.alert('Verification Failed', `Device ID mismatch. Original Device : ${firebaseId}, Current Device : ${deviceId}`);
-                  return;
-                }
-                if (isVerified && deviceId === firebaseId) {
+                if (isVerified) {
                   // If photo is verified, mark attendance
                   studentPutsAttendance(
                     bluetoothData.teacherCode,

@@ -139,7 +139,7 @@ const CameraScreen = ({route}) => {
       if (deviceId !== firebaseId) {
         Alert.alert(
           'Verification Failed',
-          `Device ID mismatch. Original Device: ${firebaseId}, Current Device: ${deviceId}`
+          `Device ID mismatch. \nOriginal Device: ${firebaseId} \nCurrent Device: ${deviceId}`
         );
         return;
       }
