@@ -24,9 +24,27 @@ const LoginScreen = () => {
       setLoading(true);
       const dbuser = await googleLogin();
       await storeUser(dbuser);
-      if(user.type === 'student'){
+      console.log(dbuser);
+
+      if (dbuser.type === 'student') {
+        if (!dbuser.photoUrl) {
+          // Use Alert with buttons that handle navigation
+          Alert.alert(
+            'First Time User',
+            'As a first time user, please upload your profile picture for attendance verification',
+            [
+              {
+                text: 'OK',
+                onPress: () => navigation.replace('CameraScreen', { first: true }),
+              },
+            ],
+            { cancelable: false } // User must press OK
+          );
+          setLoading(false);
+          return; // Important: exit the function here
+        }
         navigation.replace('Student');
-      }else{
+      } else {
         navigation.replace('Teacher');
       }
       setIsLoggedIn(true);
@@ -35,6 +53,7 @@ const LoginScreen = () => {
       handleAuthError('Login', error);
     }
   };
+
 
   const handleLogout = async () => {
     try {
@@ -78,6 +97,22 @@ const LoginScreen = () => {
       await createUser(dbuser);
       await storeUser(dbuser);
       await addStudentToClass('TEST_CLASS', 'TT', dbuser.email);
+      if (!dbuser.photoUrl) {
+        // Use Alert with buttons that handle navigation
+        Alert.alert(
+          'First Time User',
+          'As a first time user, please upload your profile picture for attendance verification',
+          [
+            {
+              text: 'OK',
+              onPress: () => navigation.replace('CameraScreen', { first: true }),
+            },
+          ],
+          { cancelable: false } // User must press OK
+        );
+        setLoading(false);
+        return; // Important: exit the function here
+      }
       navigation.replace('Student');
       setIsLoggedIn(true);
       setLoading(false);

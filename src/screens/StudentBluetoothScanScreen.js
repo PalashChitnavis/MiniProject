@@ -8,7 +8,9 @@ import {
   stopBluetoothScanning,
 } from '../services/BluetoothService';
 import {useAuth} from '../contexts/AuthContext';
-import { putAttendance, studentPutsAttendance } from '../services/DatabaseService';
+import { studentPutsAttendance } from '../services/DatabaseService';
+import deviceInfo from 'react-native-device-info';
+
 
 const StudentBluetoothScanScreen = ({navigation}) => {
   const {user} = useAuth();
@@ -75,24 +77,71 @@ const StudentBluetoothScanScreen = ({navigation}) => {
     Alert.alert(
       'Device Found',
       ` 
-      Class : ${bluetoothData.classCode} 
-      Teacher : ${bluetoothData.teacherCode}
+      Class: ${bluetoothData.classCode} 
+      Teacher: ${bluetoothData.teacherCode}
       Mark attendance.
       `,
       [
         {
           text: 'Mark',
           onPress: async () => {
-            const result = await studentPutsAttendance(bluetoothData.teacherCode,bluetoothData.classCode,user.email);
-            if(!result){
-              Alert.alert('Error','Error marking attendance',[{
-                text: 'Rescan',
-                onPress: () => {
-                  setDeviceFound(false);
-                  handleStartScan();
-                },
-              }]);
+            // Show photo verification alert
+            const proceed = await new Promise(resolve => {
+              Alert.alert(
+                'Photo Verification',
+                'Please take a photo to verify your identity',
+                [
+                  {
+                    text: 'Continue',
+                    onPress: () => resolve(true),
+                  },
+                  {
+                    text: 'Cancel',
+                    onPress: () => resolve(false),
+                    style: 'cancel',
+                  },
+                ],
+                { cancelable: false }
+              );
+            });
+
+            if (!proceed) {
+              setDeviceFound(false);
+              handleStartScan();
+              return;
             }
+
+            // Navigate to CameraScreen for verification
+            navigation.navigate('CameraScreen', {
+              first: false,
+              onPhotoVerified: async (isVerified) => {
+                const deviceId = await deviceInfo.getUniqueId();
+                const firebaseId = user.deviceId;
+                if(deviceId !== firebaseId) {
+                  Alert.alert('Verification Failed', `Device ID mismatch. Original Device : ${firebaseId}, Current Device : ${deviceId}`);
+                  return;
+                }
+                if (isVerified && deviceId === firebaseId) {
+                  // If photo is verified, mark attendance
+                  studentPutsAttendance(
+                    bluetoothData.teacherCode,
+                    bluetoothData.classCode,
+                    user.email
+                  ).then(result => {
+                    if (result) {
+                      Alert.alert('Success', 'Attendance marked successfully!');
+                      navigation.replace('Student');
+                    } else {
+                      throw new Error('Failed to mark attendance');
+                    }
+                  }).catch(error => {
+                    Alert.alert('Error', 'Failed to mark attendance');
+                  });
+                } else {
+                  Alert.alert('Verification Failed', 'Photo did not match our records');
+                }
+              },
+            });
           },
         },
         {
@@ -104,7 +153,7 @@ const StudentBluetoothScanScreen = ({navigation}) => {
         },
       ],
     );
-  };
+};
 
   return (
     <View style={styles.container}>

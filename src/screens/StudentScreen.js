@@ -29,7 +29,7 @@ const StudentScreen = ({navigation}) => {
   const {user} = useAuth();
   // Placeholder functions
   const handleGiveAttendance = () => {
-    navigation.navigate('CameraScreen');
+    navigation.replace('CameraScreen', { first: false });
   };
   const handleEditClasses = () => {
     navigation.navigate('ClassManagementStudent');
