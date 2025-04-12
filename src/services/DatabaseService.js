@@ -1,7 +1,7 @@
 import firestore from '@react-native-firebase/firestore';
 import deviceInfo from 'react-native-device-info';
 
-export const createUser = async (user) => {
+export const createUser = async user => {
   try {
     // Validate input
     if (!user || typeof user !== 'object') {
@@ -11,7 +11,9 @@ export const createUser = async (user) => {
       throw new Error('User email is required and must be a string');
     }
     if (!user.type || !['student', 'teacher'].includes(user.type)) {
-      throw new Error('User type is required and must be "student" or "teacher"');
+      throw new Error(
+        'User type is required and must be "student" or "teacher"',
+      );
     }
 
     // Get device unique ID (this will be different from MAC address but serves similar purpose)
@@ -23,7 +25,7 @@ export const createUser = async (user) => {
 
     // Use transaction for consistency and to check existing data
     let result;
-    await firestore().runTransaction(async (transaction) => {
+    await firestore().runTransaction(async transaction => {
       const docSnapshot = await transaction.get(userRef);
 
       // Prepare the user data with device ID
@@ -46,12 +48,12 @@ export const createUser = async (user) => {
       if (docSnapshot.exists) {
         // Document exists, merge updates
         console.log(`User ${emailKey} already exists, merging updates`);
-        transaction.set(userRef, userData, { merge: true });
-        result = { id: emailKey, ...docSnapshot.data(), ...userData };
+        transaction.set(userRef, userData, {merge: true});
+        result = {id: emailKey, ...docSnapshot.data(), ...userData};
       } else {
         // New document
-        transaction.set(userRef, userData, { merge: true });
-        result = { id: emailKey, ...userData };
+        transaction.set(userRef, userData, {merge: true});
+        result = {id: emailKey, ...userData};
       }
     });
 
@@ -63,7 +65,7 @@ export const createUser = async (user) => {
   }
 };
 
-export const getUser = async (email) => {
+export const getUser = async email => {
   try {
     // Validate input
     if (!email || typeof email !== 'string') {
@@ -86,20 +88,22 @@ export const getUser = async (email) => {
 
     // Optional: Verify the email matches the input to detect collisions
     if (userData.email !== email) {
-      console.warn(`Email key collision detected: ${emailKey} maps to ${userData.email}, not ${email}`);
+      console.warn(
+        `Email key collision detected: ${emailKey} maps to ${userData.email}, not ${email}`,
+      );
       // You could throw an error here if collisions are critical
       // throw new Error('Email key collision detected');
     }
 
     console.log(`User fetched successfully for emailKey: ${emailKey}`);
-    return { id: emailKey, ...userData }; // Return data with ID
+    return {id: emailKey, ...userData}; // Return data with ID
   } catch (error) {
     console.error('Error fetching user:', error.message);
     throw error;
   }
 };
 
-export const getTeacherEmailFromCode = async (teacherCode) => {
+export const getTeacherEmailFromCode = async teacherCode => {
   try {
     // Validate input
     if (!teacherCode || typeof teacherCode !== 'string') {
@@ -148,27 +152,47 @@ export const updateUser = async user => {
   }
 };
 
-export const studentPutsAttendance = async (teacherCode, classCode, studentEmail) => {
+export const studentPutsAttendance = async (
+  teacherCode,
+  classCode,
+  studentEmail,
+) => {
   try {
     // Input validation
-    if (!teacherCode || typeof teacherCode !== 'string' || teacherCode.trim() === '') {
+    if (
+      !teacherCode ||
+      typeof teacherCode !== 'string' ||
+      teacherCode.trim() === ''
+    ) {
       throw new Error('teacherCode is required and must be a non-empty string');
     }
-    if (!classCode || typeof classCode !== 'string' || classCode.trim() === '') {
+    if (
+      !classCode ||
+      typeof classCode !== 'string' ||
+      classCode.trim() === ''
+    ) {
       throw new Error('classCode is required and must be a non-empty string');
     }
-    if (!studentEmail || typeof studentEmail !== 'string' || !studentEmail.includes('@')) {
+    if (
+      !studentEmail ||
+      typeof studentEmail !== 'string' ||
+      !studentEmail.includes('@')
+    ) {
       throw new Error('studentEmail is required and must be a valid email');
     }
 
     const emailKey = studentEmail.replace(/[@.]/g, '_');
-    const studentAttendanceRef = firestore().collection('student_attendance').doc(emailKey);
-    const teacherAttendanceRef = firestore().collection('teacher_attendance').doc(`${classCode}_${teacherCode}`);
+    const studentAttendanceRef = firestore()
+      .collection('student_attendance')
+      .doc(emailKey);
+    const teacherAttendanceRef = firestore()
+      .collection('teacher_attendance')
+      .doc(`${classCode}_${teacherCode}`);
 
     // Use server timestamp for consistency
     const currentDate = getCurrentDate();
 
-    await firestore().runTransaction(async (transaction) => {
+    await firestore().runTransaction(async transaction => {
       // Fetch both documents
       const studentDoc = await transaction.get(studentAttendanceRef);
       const teacherDoc = await transaction.get(teacherAttendanceRef);
@@ -178,20 +202,24 @@ export const studentPutsAttendance = async (teacherCode, classCode, studentEmail
         // First attendance ever for this student
         transaction.set(studentAttendanceRef, {
           studentEmail,
-          classes: [{
-            classCode,
-            teacherCode,
-            datesPresent: [currentDate],
-          }],
+          classes: [
+            {
+              classCode,
+              teacherCode,
+              datesPresent: [currentDate],
+            },
+          ],
         });
       } else {
         const studentData = studentDoc.data();
         // Ensure classes is an array, default to empty if undefined or invalid
-        const classes = Array.isArray(studentData.classes) ? studentData.classes : [];
+        const classes = Array.isArray(studentData.classes)
+          ? studentData.classes
+          : [];
         console.log('Student classes:', classes); // Debug log
 
         const classIndex = classes.findIndex(
-          (cls) => cls.classCode === classCode && cls.teacherCode === teacherCode
+          cls => cls.classCode === classCode && cls.teacherCode === teacherCode,
         );
 
         if (classIndex >= 0) {
@@ -199,15 +227,14 @@ export const studentPutsAttendance = async (teacherCode, classCode, studentEmail
           const datesPresent = Array.isArray(classes[classIndex].datesPresent)
             ? classes[classIndex].datesPresent
             : [];
-          if (
-            datesPresent.some(
-              (d) => d === currentDate
-            )
-          ) {
-            throw new Error('Attendance already recorded for this date in student record');
+          if (datesPresent.some(d => d === currentDate)) {
+            throw new Error(
+              'Attendance already recorded for this date in student record',
+            );
           }
           transaction.update(studentAttendanceRef, {
-            [`classes.${classIndex}.datesPresent`]: firestore.FieldValue.arrayUnion(currentDate),
+            [`classes.${classIndex}.datesPresent`]:
+              firestore.FieldValue.arrayUnion(currentDate),
           });
         } else {
           // New class for this student
@@ -227,20 +254,22 @@ export const studentPutsAttendance = async (teacherCode, classCode, studentEmail
         transaction.set(teacherAttendanceRef, {
           classCode,
           teacherCode,
-          classes: [{
-            date: currentDate,
-            present: [studentEmail],
-          }],
+          classes: [
+            {
+              date: currentDate,
+              present: [studentEmail],
+            },
+          ],
         });
       } else {
         const teacherData = teacherDoc.data();
         // Ensure classes is an array, default to empty if undefined or invalid
-        const classes = Array.isArray(teacherData.classes) ? teacherData.classes : [];
+        const classes = Array.isArray(teacherData.classes)
+          ? teacherData.classes
+          : [];
         console.log('Teacher classes:', classes); // Debug log
 
-        const classIndex = classes.findIndex(
-          (cls) => cls.date === currentDate
-        );
+        const classIndex = classes.findIndex(cls => cls.date === currentDate);
 
         if (classIndex >= 0) {
           // Date exists, update present array
@@ -248,13 +277,18 @@ export const studentPutsAttendance = async (teacherCode, classCode, studentEmail
             ? classes[classIndex].present
             : [];
           if (present.includes(studentEmail)) {
-            throw new Error('Student already marked present for this date in teacher record');
+            throw new Error(
+              'Student already marked present for this date in teacher record',
+            );
           }
           const updatedClasses = [...teacherData.classes];
           updatedClasses[classIndex] = {
             ...updatedClasses[classIndex],
             date: currentDate,
-            present: [...(updatedClasses[classIndex].present || []), studentEmail],
+            present: [
+              ...(updatedClasses[classIndex].present || []),
+              studentEmail,
+            ],
           };
 
           transaction.update(teacherAttendanceRef, {
@@ -272,7 +306,12 @@ export const studentPutsAttendance = async (teacherCode, classCode, studentEmail
       }
     });
 
-    console.log('Attendance recorded successfully for', studentEmail, 'in class', classCode);
+    console.log(
+      'Attendance recorded successfully for',
+      studentEmail,
+      'in class',
+      classCode,
+    );
     return true;
   } catch (error) {
     console.error('Error recording student attendance:', error.message);
@@ -280,7 +319,11 @@ export const studentPutsAttendance = async (teacherCode, classCode, studentEmail
   }
 };
 
-export const teacherCancelsAttendance = async (teacherCode, classCode, studentEmail) => {
+export const teacherCancelsAttendance = async (
+  teacherCode,
+  classCode,
+  studentEmail,
+) => {
   try {
     // Create document IDs
     const studentKey = studentEmail.replace(/[@.]/g, '_');
@@ -290,10 +333,14 @@ export const teacherCancelsAttendance = async (teacherCode, classCode, studentEm
     const currentDate = getCurrentDate();
 
     // Get references to both documents
-    const studentAttendanceRef = firestore().collection('student_attendance').doc(studentKey);
-    const teacherAttendanceRef = firestore().collection('teacher_attendance').doc(classKey);
+    const studentAttendanceRef = firestore()
+      .collection('student_attendance')
+      .doc(studentKey);
+    const teacherAttendanceRef = firestore()
+      .collection('teacher_attendance')
+      .doc(classKey);
 
-    await firestore().runTransaction(async (transaction) => {
+    await firestore().runTransaction(async transaction => {
       // 1. Update student_attendance document
       const studentDoc = await transaction.get(studentAttendanceRef);
 
@@ -305,7 +352,7 @@ export const teacherCancelsAttendance = async (teacherCode, classCode, studentEm
       const classes = studentData.classes || [];
 
       const classIndex = classes.findIndex(
-        (cls) => cls.classCode === classCode && cls.teacherCode === teacherCode
+        cls => cls.classCode === classCode && cls.teacherCode === teacherCode,
       );
 
       if (classIndex === -1) {
@@ -316,16 +363,12 @@ export const teacherCancelsAttendance = async (teacherCode, classCode, studentEm
       const datesPresent = existingClass.datesPresent || [];
 
       // Match date by day only (ignore time)
-      const dateIndex = datesPresent.findIndex(
-        (date) => date === currentDate
-      );
+      const dateIndex = datesPresent.findIndex(date => date === currentDate);
       if (dateIndex === -1) {
         throw new Error('Attendance not found for the specified date');
       }
 
-      const updatedDates = datesPresent.filter(
-        (date) => date !== currentDate
-      );
+      const updatedDates = datesPresent.filter(date => date !== currentDate);
 
       if (updatedDates.length === 0) {
         transaction.update(studentAttendanceRef, {
@@ -349,7 +392,7 @@ export const teacherCancelsAttendance = async (teacherCode, classCode, studentEm
 
       // Match date by day only (ignore time)
       const teacherClassIndex = teacherClasses.findIndex(
-        (cls) => cls.date === currentDate
+        cls => cls.date === currentDate,
       );
 
       if (teacherClassIndex === -1) {
@@ -364,7 +407,8 @@ export const teacherCancelsAttendance = async (teacherCode, classCode, studentEm
       }
 
       transaction.update(teacherAttendanceRef, {
-        [`classes.${teacherClassIndex}.present`]: firestore.FieldValue.arrayRemove(studentEmail),
+        [`classes.${teacherClassIndex}.present`]:
+          firestore.FieldValue.arrayRemove(studentEmail),
       });
 
       // Remove the entire date record if no students left
@@ -383,7 +427,6 @@ export const teacherCancelsAttendance = async (teacherCode, classCode, studentEm
   }
 };
 
-
 export const upsertTeacherAttendance = async (classCode, teacherCode) => {
   try {
     // References to both collections
@@ -399,7 +442,7 @@ export const upsertTeacherAttendance = async (classCode, teacherCode) => {
 
     let result;
 
-    await firestore().runTransaction(async (transaction) => {
+    await firestore().runTransaction(async transaction => {
       // Fetch both documents
       const teacherDoc = await transaction.get(teacherAttendanceRef);
       const classesDoc = await transaction.get(classesRef);
@@ -410,10 +453,12 @@ export const upsertTeacherAttendance = async (classCode, teacherCode) => {
         const newRecord = {
           teacherCode,
           classCode,
-          classes: [{
-            date: currentDate,
-            present: [],
-          }],
+          classes: [
+            {
+              date: currentDate,
+              present: [],
+            },
+          ],
         };
         transaction.set(teacherAttendanceRef, newRecord);
         result = newRecord;
@@ -422,7 +467,12 @@ export const upsertTeacherAttendance = async (classCode, teacherCode) => {
         const classes = teacherData.classes || [];
 
         // Check for existing class for this date
-        const existingClass = classes.find(cls => cls.date === currentDate);
+        let existingClass = null;
+        for (let i = 0; i < classes.length && !existingClass; i++) {
+          if (classes[i].date === currentDate) {
+            existingClass = classes[i];
+          }
+        }
 
         if (existingClass) {
           console.log('Using existing class record for this date');
@@ -440,7 +490,7 @@ export const upsertTeacherAttendance = async (classCode, teacherCode) => {
           });
           result = {
             ...teacherData,
-            classes: [...classes, { date: currentDate, present: [] }],
+            classes: [...classes, {date: currentDate, present: []}],
             existingDate: false,
           };
         }
@@ -468,18 +518,23 @@ export const upsertTeacherAttendance = async (classCode, teacherCode) => {
     });
 
     console.log('Teacher attendance processed successfully');
-    return result || {
-      status: 'success',
-      message: 'Attendance processed',
-      date: currentDate,
-    };
+    return (
+      result || {
+        status: 'success',
+        message: 'Attendance processed',
+        date: currentDate,
+      }
+    );
   } catch (error) {
     console.error('Error in upsertTeacherAttendance:', error.message);
     throw error;
   }
 };
 
-export const getAttendanceTeacherCurrentDate = async (teacherCode, classCode) => {
+export const getAttendanceTeacherCurrentDate = async (
+  teacherCode,
+  classCode,
+) => {
   try {
     // Validate inputs
     if (!teacherCode || typeof teacherCode !== 'string') {
@@ -503,7 +558,6 @@ export const getAttendanceTeacherCurrentDate = async (teacherCode, classCode) =>
 
     const data = docSnapshot.data();
 
-
     // Use server-aligned current date
     const currentDate = getCurrentDate();
 
@@ -512,15 +566,19 @@ export const getAttendanceTeacherCurrentDate = async (teacherCode, classCode) =>
 
     // Find today's class (match by day, ignoring time)
     const todaysClass = data.classes.find(
-      (cls) => cls.date && cls.date === currentDate
+      cls => cls.date && cls.date === currentDate,
     );
 
     if (!todaysClass) {
-      console.log(`No attendance record for today in ${classCode}_${teacherCode}`);
+      console.log(
+        `No attendance record for today in ${classCode}_${teacherCode}`,
+      );
       return [];
     }
 
-    console.log(`Attendance fetched for ${classCode}_${teacherCode} on current date`);
+    console.log(
+      `Attendance fetched for ${classCode}_${teacherCode} on current date`,
+    );
     return todaysClass.present || [];
   } catch (error) {
     console.error('Error fetching teacher attendance:', error.message);
@@ -531,25 +589,40 @@ export const getAttendanceTeacherCurrentDate = async (teacherCode, classCode) =>
 export const upsertClassesTeacher = async (teacherCode, classCode) => {
   try {
     // Validate inputs
-    if (!teacherCode || typeof teacherCode !== 'string' || teacherCode.trim() === '') {
+    if (
+      !teacherCode ||
+      typeof teacherCode !== 'string' ||
+      teacherCode.trim() === ''
+    ) {
       throw new Error('teacherCode is required and must be a non-empty string');
     }
-    if (!classCode || typeof classCode !== 'string' || classCode.trim() === '') {
+    if (
+      !classCode ||
+      typeof classCode !== 'string' ||
+      classCode.trim() === ''
+    ) {
       throw new Error('classCode is required and must be a non-empty string');
     }
 
-    const classesRef = firestore().collection('classes').doc(`${classCode}_${teacherCode}`);
+    const classesRef = firestore()
+      .collection('classes')
+      .doc(`${classCode}_${teacherCode}`);
 
     // Use a transaction for consistency
     let result;
-    await firestore().runTransaction(async (transaction) => {
+    await firestore().runTransaction(async transaction => {
       const docSnapshot = await transaction.get(classesRef);
 
       if (docSnapshot.exists) {
         const existingData = docSnapshot.data();
         // Optional: Verify consistency of existing data
-        if (existingData.teacherCode !== teacherCode || existingData.classCode !== classCode) {
-          console.warn(`Existing class data mismatch for ${classCode}_${teacherCode}`);
+        if (
+          existingData.teacherCode !== teacherCode ||
+          existingData.classCode !== classCode
+        ) {
+          console.warn(
+            `Existing class data mismatch for ${classCode}_${teacherCode}`,
+          );
         }
         result = existingData;
       } else {
@@ -557,14 +630,16 @@ export const upsertClassesTeacher = async (teacherCode, classCode) => {
           teacherCode,
           classCode,
           students: [], // Could accept initial students as an optional param if needed
-          dates: [],    // Could accept initial dates if needed
+          dates: [], // Could accept initial dates if needed
         };
         transaction.set(classesRef, record);
         result = record;
       }
     });
 
-    console.log(`Class record upserted successfully for ${classCode}_${teacherCode}`);
+    console.log(
+      `Class record upserted successfully for ${classCode}_${teacherCode}`,
+    );
     return result; // Consistent return of data
   } catch (error) {
     console.error('Error upserting class record:', error.message);
@@ -572,22 +647,30 @@ export const upsertClassesTeacher = async (teacherCode, classCode) => {
   }
 };
 
-export const addStudentToClass = async (classCode, teacherCode, studentEmail) => {
+export const addStudentToClass = async (
+  classCode,
+  teacherCode,
+  studentEmail,
+) => {
   try {
     // Validate inputs
     if (!classCode || !teacherCode || !studentEmail) {
       throw new Error('classCode, teacherCode, and studentEmail are required');
     }
 
-    const classesRef = firestore().collection('classes').doc(`${classCode}_${teacherCode}`);
+    const classesRef = firestore()
+      .collection('classes')
+      .doc(`${classCode}_${teacherCode}`);
 
     // Use a transaction to ensure consistency
-    await firestore().runTransaction(async (transaction) => {
+    await firestore().runTransaction(async transaction => {
       const docSnapshot = await transaction.get(classesRef);
 
       // Check if the document exists
       if (!docSnapshot.exists) {
-        throw new Error(`Class ${classCode} with teacher ${teacherCode} does not exist`);
+        throw new Error(
+          `Class ${classCode} with teacher ${teacherCode} does not exist`,
+        );
       }
 
       const classData = docSnapshot.data();
@@ -595,7 +678,9 @@ export const addStudentToClass = async (classCode, teacherCode, studentEmail) =>
 
       // Check if student is already enrolled
       if (students.includes(studentEmail)) {
-        console.log(`Student ${studentEmail} is already enrolled in ${classCode}`);
+        console.log(
+          `Student ${studentEmail} is already enrolled in ${classCode}`,
+        );
         return; // No update needed
       }
 
@@ -605,7 +690,9 @@ export const addStudentToClass = async (classCode, teacherCode, studentEmail) =>
       });
     });
 
-    console.log(`Student ${studentEmail} added to class ${classCode} successfully`);
+    console.log(
+      `Student ${studentEmail} added to class ${classCode} successfully`,
+    );
     return true; // Consistent success indicator
   } catch (error) {
     console.error('Error adding student to class:', error.message);
@@ -613,7 +700,7 @@ export const addStudentToClass = async (classCode, teacherCode, studentEmail) =>
   }
 };
 
-export const getStudentAttendanceReport = async (studentEmail) => {
+export const getStudentAttendanceReport = async studentEmail => {
   try {
     // Validate input
     if (!studentEmail || typeof studentEmail !== 'string') {
@@ -622,7 +709,9 @@ export const getStudentAttendanceReport = async (studentEmail) => {
 
     // Preserve your email key transformation
     const emailKey = studentEmail.replace(/[@.]/g, '_');
-    const attendanceRef = firestore().collection('student_attendance').doc(emailKey);
+    const attendanceRef = firestore()
+      .collection('student_attendance')
+      .doc(emailKey);
 
     // Fetch the document
     const docSnapshot = await attendanceRef.get();
@@ -636,13 +725,17 @@ export const getStudentAttendanceReport = async (studentEmail) => {
 
     // Optional: Verify the email matches the input to detect collisions
     if (userData.studentEmail !== studentEmail) {
-      console.warn(`Email key collision detected: ${emailKey} maps to ${userData.studentEmail}, not ${studentEmail}`);
+      console.warn(
+        `Email key collision detected: ${emailKey} maps to ${userData.studentEmail}, not ${studentEmail}`,
+      );
       // You could throw an error here if collisions are critical
       // throw new Error('Email key collision detected');
     }
 
-    console.log(`student attendance fetched successfully for emailKey: ${emailKey}`);
-    return { id: emailKey, ...userData }; // Return data with ID
+    console.log(
+      `student attendance fetched successfully for emailKey: ${emailKey}`,
+    );
+    return {id: emailKey, ...userData}; // Return data with ID
   } catch (error) {
     console.error('Error fetching user:', error.message);
     throw error;
@@ -657,33 +750,41 @@ export const getTeachertAttendanceReport = async (classCode, teacherCode) => {
     }
 
     // Preserve your email key transformation
-    const attendanceRef = firestore().collection('teacher_attendance').doc(`${classCode}_${teacherCode}`);
+    const attendanceRef = firestore()
+      .collection('teacher_attendance')
+      .doc(`${classCode}_${teacherCode}`);
 
     // Fetch the document
     const docSnapshot = await attendanceRef.get();
 
     if (!docSnapshot.exists) {
-      console.log(`No user found for classCode and teacherCode: ${classCode}_${teacherCode}`);
+      console.log(
+        `No user found for classCode and teacherCode: ${classCode}_${teacherCode}`,
+      );
       return null; // Consistent with original behavior
     }
 
     const userData = docSnapshot.data();
 
     // Optional: Verify the email matches the input to detect collisions
-    if (userData.classCode !== classCode && userData.teacherCode !== teacherCode) {
-      console.warn(`Email key collision detected: ${classCode}_${teacherCode} maps to ${userData.classCode}, not ${classCode}`);
+    if (
+      userData.classCode !== classCode &&
+      userData.teacherCode !== teacherCode
+    ) {
+      console.warn(
+        `Email key collision detected: ${classCode}_${teacherCode} maps to ${userData.classCode}, not ${classCode}`,
+      );
       // You could throw an error here if collisions are critical
       // throw new Error('Email key collision detected');
     }
 
     console.log('Teacher Attendance fetched successfully');
-    return { ...userData }; // Return data with ID
+    return {...userData}; // Return data with ID
   } catch (error) {
     console.error('Error fetching teacher attendance:', error.message);
     throw error;
   }
 };
-
 
 const getCurrentDate = () => {
   const currentDate = firestore.Timestamp.now();

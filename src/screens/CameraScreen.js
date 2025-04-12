@@ -21,7 +21,6 @@ import {
 import {getUser} from '../services/DatabaseService';
 import deviceInfo from 'react-native-device-info';
 
-
 const CameraScreen = ({route}) => {
   const {user} = useAuth();
   const device = useCameraDevice('front');
@@ -109,7 +108,9 @@ const CameraScreen = ({route}) => {
   };
 
   const handleAcceptAttendance = async () => {
-    if (!capturedPhoto || !user?.email) {return;}
+    if (!capturedPhoto || !user?.email) {
+      return;
+    }
 
     try {
       setIsUploading(true);
@@ -126,7 +127,7 @@ const CameraScreen = ({route}) => {
         console.warn('No deviceId found in user document');
         Alert.alert(
           'Verification Failed',
-          'This account is not properly registered on this device'
+          'This account is not properly registered on this device',
         );
         return;
       }
@@ -139,7 +140,7 @@ const CameraScreen = ({route}) => {
       if (deviceId !== firebaseId) {
         Alert.alert(
           'Verification Failed',
-          `Device ID mismatch. \nOriginal Device: ${firebaseId} \nCurrent Device: ${deviceId}`
+          `Device ID mismatch. \nOriginal Device: ${firebaseId} \nCurrent Device: ${deviceId}`,
         );
         return;
       }
@@ -168,29 +169,30 @@ const CameraScreen = ({route}) => {
       if (onPhotoVerified) {
         onPhotoVerified(result.matched && result.similarity >= 70);
         setUploadStatus('verified');
-        navigation.goBack();
       } else {
         Alert.alert(
           'Verification Failed',
-          `Photo did not match (${result.similarity?.toFixed(1) || 'unknown'}% similarity)`
+          `Photo did not match (${
+            result.similarity?.toFixed(1) || 'unknown'
+          }% similarity)`,
         );
       }
-
     } catch (error) {
       console.error('Error in handleAcceptAttendance:', error);
       setUploadStatus(null);
       Alert.alert(
         'Error',
-        error.message || 'Failed to complete the process. Please try again.'
+        error.message || 'Failed to complete the process. Please try again.',
       );
     } finally {
       setIsUploading(false);
+      setUploadStatus('verified');
     }
   };
 
   const handleOK = () => {
-    navigation.navigate('StudentViewReportScreen');
-    console.log('OK pressed');
+    // navigation.navigate('StudentViewReportScreen');
+    navigation.goBack();
   };
 
   if (!device) {
@@ -276,7 +278,7 @@ const CameraScreen = ({route}) => {
       {capturedPhoto ? (
         <View style={styles.previewContainer}>
           <Image
-            source={{ uri: `file://${capturedPhoto.path}` }}
+            source={{uri: `file://${capturedPhoto.path}`}}
             style={styles.previewImage}
             resizeMode="contain"
           />
@@ -289,7 +291,9 @@ const CameraScreen = ({route}) => {
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.actionButton, styles.acceptButton]}
-              onPress={isFirstTime ? handleAcceptFirstTime : handleAcceptAttendance}
+              onPress={
+                isFirstTime ? handleAcceptFirstTime : handleAcceptAttendance
+              }
               disabled={isUploading}>
               {isUploading ? (
                 <ActivityIndicator color="#fff" />
