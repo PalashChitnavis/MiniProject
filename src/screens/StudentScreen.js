@@ -29,7 +29,7 @@ const StudentScreen = ({navigation}) => {
   const {user} = useAuth();
   // Placeholder functions
   const handleGiveAttendance = () => {
-    navigation.replace('CameraScreen', { first: false });
+    navigation.navigate('StudentBluetoothScanScreen');
   };
   const handleEditClasses = () => {
     navigation.navigate('ClassManagementStudent');

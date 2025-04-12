@@ -19,6 +19,8 @@ import {
   uploadUserPhoto,
 } from '../services/ImageService';
 import {getUser} from '../services/DatabaseService';
+import deviceInfo from 'react-native-device-info';
+
 
 const CameraScreen = ({route}) => {
   const {user} = useAuth();
@@ -114,6 +116,12 @@ const CameraScreen = ({route}) => {
       const dbUser = await getUser(user.email);
       if (!dbUser.photoUrl) {
         throw new Error('No reference photo found');
+      }
+      const deviceId = await deviceInfo.getUniqueId();
+      const firebaseId = dbUser.deviceId;
+      if(deviceId !== firebaseId) {
+          Alert.alert('Verification Failed', `Device ID mismatch. Original Device : ${firebaseId}, Current Device : ${deviceId}`);
+          return;
       }
       // setUploadStatus('uploading');
       setUploadStatus('processing');
