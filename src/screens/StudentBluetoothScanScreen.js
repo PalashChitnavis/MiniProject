@@ -8,8 +8,9 @@ import {
   stopBluetoothScanning,
 } from '../services/BluetoothService';
 import {useAuth} from '../contexts/AuthContext';
-import {studentPutsAttendance} from '../services/DatabaseService';
+import {studentPutsAttendance, getUser} from '../services/DatabaseService';
 import {useFocusEffect, useNavigation} from '@react-navigation/native';
+import deviceInfo from 'react-native-device-info';
 
 const StudentBluetoothScanScreen = () => {
   const {user} = useAuth();
@@ -17,11 +18,41 @@ const StudentBluetoothScanScreen = () => {
   const [isScanning, setIsScanning] = useState(false);
   const [deviceFound, setDeviceFound] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [currentDeviceId, setCurrentDeviceId] = useState(null);
+  const [firebaseDeviceId, setFirebaseDeviceId] = useState(null);
+  const [isDeviceValid, setIsDeviceValid] = useState(null);
   const [circles] = useState([
     new Animated.Value(0),
     new Animated.Value(0.2),
     new Animated.Value(0.4),
   ]);
+
+  // Fetch device IDs on mount
+  useEffect(() => {
+    const fetchDeviceIds = async () => {
+      try {
+        setIsProcessing(true);
+        const deviceId = await deviceInfo.getUniqueId();
+        setCurrentDeviceId(deviceId);
+
+        if (!user?.email) {
+          throw new Error('User email not available');
+        }
+
+        const dbUser = await getUser(user.email);
+        setFirebaseDeviceId(dbUser.deviceId || null);
+        setIsDeviceValid(dbUser.deviceId && deviceId === dbUser.deviceId);
+      } catch (error) {
+        console.error('Error fetching device IDs:', error);
+        Alert.alert('Error', 'Failed to verify device. Please try again.');
+        setIsDeviceValid(false);
+      } finally {
+        setIsProcessing(false);
+      }
+    };
+
+    fetchDeviceIds();
+  }, [user?.email]);
 
   // Stop scanning and animations
   const stopScanning = useCallback(() => {
@@ -88,7 +119,7 @@ const StudentBluetoothScanScreen = () => {
   }, [isScanning, circles]);
 
   const handleStartScan = async () => {
-    if (isProcessing || isScanning) return;
+    if (isProcessing || isScanning || !isDeviceValid) return;
     setIsProcessing(true);
 
     try {
@@ -258,13 +289,27 @@ const StudentBluetoothScanScreen = () => {
           />
         </View>
       </View>
+
+      <View style={styles.deviceIdContainer}>
+        <Text style={styles.deviceIdText}>
+          Current Device ID: {currentDeviceId || 'Loading...'}
+        </Text>
+        <Text style={styles.deviceIdText}>
+          Registered Device ID: {firebaseDeviceId || 'Not set'}
+        </Text>
+      </View>
+
       <View>
         <Text style={styles.statusText}>
           {isScanning
             ? 'Scanning for devices...'
             : deviceFound
             ? 'Device found!'
-            : 'Ready to scan'}
+            : isDeviceValid === null
+            ? 'Verifying device...'
+            : isDeviceValid
+            ? 'Ready to scan'
+            : 'This device isn’t your primary device'}
         </Text>
       </View>
 
@@ -272,7 +317,7 @@ const StudentBluetoothScanScreen = () => {
         title={isScanning ? 'Stop Scanning' : 'Start Scanning'}
         onPress={isScanning ? handleStopScan : handleStartScan}
         color={isScanning ? 'red' : 'green'}
-        disabled={isProcessing}
+        disabled={isProcessing || !isDeviceValid}
       />
     </View>
   );
@@ -321,6 +366,15 @@ const styles = StyleSheet.create({
     color: '#333',
     textAlign: 'center',
     marginTop: 20,
+  },
+  deviceIdContainer: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  deviceIdText: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
   },
 });
 
