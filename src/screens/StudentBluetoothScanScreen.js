@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import React, {useState, useEffect} from 'react';
-import {View, Text, StyleSheet, Alert, Animated, Easing} from 'react-native';
+import React, {useState, useEffect, useCallback} from 'react';
+import {View, Text, StyleSheet, Alert, Animated, Easing, AppState} from 'react-native';
 import ButtonComponent from '../components/ButtonComponent';
 import {
   isBluetoothEnabled,
@@ -9,17 +9,54 @@ import {
 } from '../services/BluetoothService';
 import {useAuth} from '../contexts/AuthContext';
 import {studentPutsAttendance} from '../services/DatabaseService';
+import {useFocusEffect, useNavigation} from '@react-navigation/native';
 
-const StudentBluetoothScanScreen = ({navigation}) => {
+const StudentBluetoothScanScreen = () => {
   const {user} = useAuth();
+  const navigation = useNavigation();
   const [isScanning, setIsScanning] = useState(false);
   const [deviceFound, setDeviceFound] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [circles] = useState([
     new Animated.Value(0),
     new Animated.Value(0.2),
     new Animated.Value(0.4),
   ]);
 
+  // Stop scanning and animations
+  const stopScanning = useCallback(() => {
+    stopBluetoothScanning();
+    setIsScanning(false);
+    setDeviceFound(false);
+    circles.forEach(circle => circle.stopAnimation());
+    circles.forEach(circle => circle.setValue(0));
+  }, [circles]);
+
+  // Handle app state changes (background/foreground)
+  useEffect(() => {
+    const handleAppStateChange = nextAppState => {
+      if (nextAppState === 'background' && isScanning) {
+        stopScanning();
+      }
+    };
+
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+
+    return () => {
+      subscription.remove();
+    };
+  }, [isScanning, stopScanning]);
+
+  // Stop scanning when screen loses focus or unmounts
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        stopScanning();
+      };
+    }, [stopScanning]),
+  );
+
+  // Handle animations
   useEffect(() => {
     if (isScanning) {
       const animations = circles.map((circle, index) =>
@@ -39,51 +76,74 @@ const StudentBluetoothScanScreen = ({navigation}) => {
           ]),
         ),
       );
-
       Animated.stagger(600, animations).start();
     } else {
+      circles.forEach(circle => circle.stopAnimation());
       circles.forEach(circle => circle.setValue(0));
     }
-  }, [isScanning]);
+
+    return () => {
+      circles.forEach(circle => circle.stopAnimation());
+    };
+  }, [isScanning, circles]);
 
   const handleStartScan = async () => {
-    const btEnabled = await isBluetoothEnabled();
-    if (!btEnabled) {
-      Alert.alert(
-        'Bluetooth Required',
-        'Please turn on Bluetooth to give attendance.',
-      );
-      return;
-    }
+    if (isProcessing || isScanning) return;
+    setIsProcessing(true);
 
-    setIsScanning(true);
-    const classes = user.classes || [];
-    startBluetoothScanning(classes, bluetoothData => {
-      setIsScanning(false);
-      setDeviceFound(true);
-      handleDeviceFound(bluetoothData);
-    });
+    try {
+      const btEnabled = await isBluetoothEnabled();
+      if (!btEnabled) {
+        Alert.alert(
+          'Bluetooth Required',
+          'Please turn on Bluetooth to give attendance.',
+        );
+        return;
+      }
+
+      const classes = Array.isArray(user.classes) ? user.classes : [];
+      if (classes.length === 0) {
+        Alert.alert('No Classes', 'You are not enrolled in any classes.');
+        return;
+      }
+
+      setIsScanning(true);
+      startBluetoothScanning(classes, bluetoothData => {
+        if (!bluetoothData?.classCode || !bluetoothData?.teacherCode) {
+          stopScanning();
+          Alert.alert('Error', 'Invalid device data received.');
+          return;
+        }
+        setIsScanning(false);
+        setDeviceFound(true);
+        handleDeviceFound(bluetoothData);
+      }).catch(error => {
+        stopScanning();
+        Alert.alert(
+          'Error',
+          error.message || 'Failed to start Bluetooth scanning.',
+        );
+      });
+    } catch (error) {
+      stopScanning();
+      Alert.alert('Error', 'Unable to check Bluetooth status.');
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const handleStopScan = () => {
-    stopBluetoothScanning();
-    setIsScanning(false);
+    stopScanning();
   };
 
   const handleDeviceFound = bluetoothData => {
-    handleStopScan();
     Alert.alert(
       'Device Found',
-      ` 
-      Class: ${bluetoothData.classCode} 
-      Teacher: ${bluetoothData.teacherCode}
-      Mark attendance.
-      `,
+      `Class: ${bluetoothData.classCode}\nTeacher: ${bluetoothData.teacherCode}\nMark attendance.`,
       [
         {
           text: 'Mark',
           onPress: async () => {
-            // Show photo verification alert
             const proceed = await new Promise(resolve => {
               Alert.alert(
                 'Photo Verification',
@@ -109,18 +169,17 @@ const StudentBluetoothScanScreen = ({navigation}) => {
               return;
             }
 
-            // Navigate to CameraScreen for verification
-            navigation.navigate('CameraScreen', {
-              first: false,
-              onPhotoVerified: async isVerified => {
-                if (isVerified) {
-                  // If photo is verified, mark attendance
-                  studentPutsAttendance(
-                    bluetoothData.teacherCode,
-                    bluetoothData.classCode,
-                    user.email,
-                  )
-                    .then(result => {
+            try {
+              navigation.navigate('CameraScreen', {
+                first: false,
+                onPhotoVerified: async isVerified => {
+                  if (isVerified) {
+                    try {
+                      const result = await studentPutsAttendance(
+                        bluetoothData.teacherCode,
+                        bluetoothData.classCode,
+                        user.email,
+                      );
                       if (result) {
                         Alert.alert(
                           'Success',
@@ -128,20 +187,28 @@ const StudentBluetoothScanScreen = ({navigation}) => {
                         );
                         navigation.replace('Student');
                       } else {
-                        throw new Error('Failed to mark attendance');
+                        throw new Error('Attendance marking returned false');
                       }
-                    })
-                    .catch(error => {
-                      Alert.alert('Error', 'Failed to mark attendance');
-                    });
-                } else {
-                  Alert.alert(
-                    'Verification Failed',
-                    'Photo did not match our records',
-                  );
-                }
-              },
-            });
+                    } catch (error) {
+                      Alert.alert(
+                        'Error',
+                        error.message || 'Failed to mark attendance.',
+                      );
+                      setDeviceFound(false);
+                    }
+                  } else {
+                    Alert.alert(
+                      'Verification Failed',
+                      'Photo did not match our records.',
+                    );
+                    setDeviceFound(false);
+                  }
+                },
+              });
+            } catch (error) {
+              Alert.alert('Error', 'Failed to navigate to verification screen.');
+              setDeviceFound(false);
+            }
           },
         },
         {
@@ -152,6 +219,7 @@ const StudentBluetoothScanScreen = ({navigation}) => {
           },
         },
       ],
+      {cancelable: false},
     );
   };
 
@@ -204,6 +272,7 @@ const StudentBluetoothScanScreen = ({navigation}) => {
         title={isScanning ? 'Stop Scanning' : 'Start Scanning'}
         onPress={isScanning ? handleStopScan : handleStartScan}
         color={isScanning ? 'red' : 'green'}
+        disabled={isProcessing}
       />
     </View>
   );

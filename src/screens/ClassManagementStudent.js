@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable react-native/no-inline-styles */
-import React, { useState, useRef, useEffect } from 'react';
+import React, {useState, useRef, useEffect} from 'react';
 import {
   View,
   Text,
@@ -13,24 +13,24 @@ import {
   Animated,
   Easing,
   BackHandler,
+  ActivityIndicator,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
-import { addStudentToClass, updateUser } from '../services/DatabaseService';
-import { useAuth } from '../contexts/AuthContext';
-import { useNavigation } from '@react-navigation/native';
+import {addStudentToClass, updateUser} from '../services/DatabaseService';
+import {useAuth} from '../contexts/AuthContext';
+import {useNavigation} from '@react-navigation/native';
 
 const ClassManagementStudent = () => {
   const {user, storeUser} = useAuth();
   const navigation = useNavigation();
-  // Initial classes data
-  const initialClasses = user.classes || [];
+  const initialClasses = Array.isArray(user?.classes) ? user.classes : [];
 
   const [originalClasses, setOriginalClasses] = useState(initialClasses);
   const [classes, setClasses] = useState(initialClasses);
   const [hasChanges, setHasChanges] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const buttonSlideAnim = useRef(new Animated.Value(0)).current;
 
-  // Form state
   const [modalVisible, setModalVisible] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editingIndex, setEditingIndex] = useState(null);
@@ -39,30 +39,25 @@ const ClassManagementStudent = () => {
     classCode: '',
   });
 
-  // Handle back button/back navigation with unsaved changes
   useEffect(() => {
     const backAction = () => {
       if (hasChanges) {
         showUnsavedChangesAlert();
-        return true; // Prevent default back behavior
+        return true;
       }
       return false;
     };
 
     const backHandler = BackHandler.addEventListener(
       'hardwareBackPress',
-      backAction
+      backAction,
     );
 
-    // Add navigation listener for software back button
-    const unsubscribe = navigation.addListener('beforeRemove', (e) => {
+    const unsubscribe = navigation.addListener('beforeRemove', e => {
       if (!hasChanges) {
         return;
       }
-
-      // Prevent default behavior of leaving the screen
       e.preventDefault();
-
       showUnsavedChangesAlert(e);
     });
 
@@ -72,7 +67,7 @@ const ClassManagementStudent = () => {
     };
   }, [hasChanges, navigation]);
 
-  const showUnsavedChangesAlert = (e) => {
+  const showUnsavedChangesAlert = e => {
     Alert.alert(
       'Unsaved Changes',
       'You have unsaved changes. Do you want to save them before leaving?',
@@ -81,7 +76,6 @@ const ClassManagementStudent = () => {
           text: 'Discard',
           style: 'destructive',
           onPress: () => {
-            // Reset changes and allow navigation
             setClasses(originalClasses);
             setHasChanges(false);
             if (e) {
@@ -105,23 +99,18 @@ const ClassManagementStudent = () => {
         {
           text: 'Cancel',
           style: 'cancel',
-          onPress: () => {
-            // Do nothing, stay on screen
-          },
         },
-      ]
+      ],
     );
   };
 
-  // Convert input to uppercase
   const handleInputChange = (field, value) => {
     setCurrentClass(prev => ({
       ...prev,
-      [field]: value.toUpperCase(), // Auto-uppercase
+      [field]: value.toUpperCase().trim(),
     }));
   };
 
-  // Reset form
   const resetForm = () => {
     setCurrentClass({
       teacherCode: '',
@@ -131,39 +120,50 @@ const ClassManagementStudent = () => {
     setEditingIndex(null);
   };
 
-  // Check if class already exists
-  const classExists = (cls) => {
-    return classes.some(existingClass =>
-      existingClass.teacherCode === cls.teacherCode &&
-      existingClass.classCode === cls.classCode
+  const classExists = cls => {
+    return classes.some(
+      existingClass =>
+        existingClass.teacherCode === cls.teacherCode &&
+        existingClass.classCode === cls.classCode,
     );
   };
 
-  // Check if another class with same data exists (for editing)
   const anotherClassExists = (cls, currentIndex) => {
-    return classes.some((existingClass, index) =>
-      index !== currentIndex &&
-      existingClass.teacherCode === cls.teacherCode &&
-      existingClass.classCode === cls.classCode
+    return classes.some(
+      (existingClass, index) =>
+        index !== currentIndex &&
+        existingClass.teacherCode === cls.teacherCode &&
+        existingClass.classCode === cls.classCode,
     );
   };
 
-  // Submit class (add or update)
+  const validateClassInput = cls => {
+    const {teacherCode, classCode} = cls;
+    if (!teacherCode.trim() || !classCode.trim()) {
+      return 'Please fill all fields';
+    }
+    if (/[^A-Z0-9]/.test(teacherCode) || /[^A-Z0-9]/.test(classCode)) {
+      return 'Codes must contain only letters and numbers';
+    }
+    return null;
+  };
+
   const handleSubmit = () => {
-    if (!currentClass.teacherCode || !currentClass.classCode) {
-      Alert.alert('Error', 'Please fill all fields');
+    if (isSubmitting) return;
+
+    const validationError = validateClassInput(currentClass);
+    if (validationError) {
+      Alert.alert('Error', validationError);
       return;
     }
 
     if (isEditing && editingIndex !== null) {
-      // Editing existing class
       if (anotherClassExists(currentClass, editingIndex)) {
         Alert.alert('Error', 'A class with these details already exists');
         return;
       }
-
       const updatedClasses = [...classes];
-      updatedClasses[editingIndex] = currentClass;
+      updatedClasses[editingIndex] = {...currentClass};
       setClasses(updatedClasses);
       setHasChanges(true);
       animateButtonsIn();
@@ -172,8 +172,7 @@ const ClassManagementStudent = () => {
         Alert.alert('Error', 'This class already exists');
         return;
       }
-
-      const updatedClasses = [...classes, currentClass];
+      const updatedClasses = [...classes, {...currentClass}];
       setClasses(updatedClasses);
       setHasChanges(true);
       animateButtonsIn();
@@ -183,75 +182,85 @@ const ClassManagementStudent = () => {
     resetForm();
   };
 
-  // Edit class
   const handleEdit = (cls, index) => {
-    setCurrentClass(cls);
+    setCurrentClass({...cls});
     setIsEditing(true);
     setEditingIndex(index);
     setModalVisible(true);
   };
 
-  // Delete class
-  const handleDelete = (index) => {
-    Alert.alert(
-      'Delete Class',
-      'Are you sure you want to delete this class?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => {
-            const newClasses = classes.filter((_, i) => i !== index);
-            setClasses(newClasses);
-            setHasChanges(true);
-            animateButtonsIn();
-          },
+  const handleDelete = index => {
+    Alert.alert('Delete Class', 'Are you sure you want to delete this class?', [
+      {text: 'Cancel', style: 'cancel'},
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: () => {
+          const newClasses = classes.filter((_, i) => i !== index);
+          setClasses(newClasses);
+          setHasChanges(true);
+          animateButtonsIn();
         },
-      ]
-    );
+      },
+    ]);
   };
 
-  // Apply changes
   const handleApplyChanges = async () => {
-    const normalizedClasses = classes.map(cls => ({
-      teacherCode: cls.teacherCode.toUpperCase(),
-      classCode: cls.classCode.toUpperCase(),
-    }));
+    if (isSubmitting || !user.email) return;
+    setIsSubmitting(true);
 
-    setOriginalClasses(normalizedClasses);
-    const updatedUser = {...user, classes: normalizedClasses};
-    await storeUser(updatedUser);
-    await updateUser(updatedUser);
-    for(const cls of normalizedClasses) {
-      await addStudentToClass(cls.classCode, cls.teacherCode, user.email);
+    try {
+      const normalizedClasses = classes.map(cls => ({
+        teacherCode: cls.teacherCode.toUpperCase().trim(),
+        classCode: cls.classCode.toUpperCase().trim(),
+      }));
+
+      const updatedUser = {...user, classes: normalizedClasses};
+      await updateUser(updatedUser);
+      await storeUser(updatedUser);
+
+      // Sequentially add student to classes to avoid Firestore contention
+      for (const cls of normalizedClasses) {
+        try {
+          await addStudentToClass(cls.classCode, cls.teacherCode, user.email);
+        } catch (error) {
+          if (error.message.includes('Class') && error.message.includes('does not exist')) {
+            Alert.alert(
+              'Warning',
+              `Class ${cls.classCode} with teacher ${cls.teacherCode} does not exist. Other changes saved.`,
+            );
+          } else {
+            throw error;
+          }
+        }
+      }
+
+      setOriginalClasses(normalizedClasses);
+      setHasChanges(false);
+      animateButtonsOut();
+      Alert.alert('Success', 'Changes have been saved');
+    } catch (error) {
+      Alert.alert('Error', error.message || 'Failed to save changes');
+    } finally {
+      setIsSubmitting(false);
     }
-    setHasChanges(false);
-    animateButtonsOut();
-    Alert.alert('Success', 'Changes have been saved');
   };
 
-  // Reset changes
   const handleResetChanges = () => {
-    Alert.alert(
-      'Reset Changes',
-      'Are you sure you want to discard all changes?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Discard',
-          style: 'destructive',
-          onPress: () => {
-            setClasses(originalClasses);
-            setHasChanges(false);
-            animateButtonsOut();
-          },
+    Alert.alert('Reset Changes', 'Are you sure you want to discard all changes?', [
+      {text: 'Cancel', style: 'cancel'},
+      {
+        text: 'Discard',
+        style: 'destructive',
+        onPress: () => {
+          setClasses(originalClasses);
+          setHasChanges(false);
+          animateButtonsOut();
         },
-      ]
-    );
+      },
+    ]);
   };
 
-  // Animation for buttons
   const animateButtonsIn = () => {
     Animated.timing(buttonSlideAnim, {
       toValue: 1,
@@ -277,7 +286,6 @@ const ClassManagementStudent = () => {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerText}>My Classes</Text>
         <TouchableOpacity
@@ -286,66 +294,75 @@ const ClassManagementStudent = () => {
             resetForm();
             setModalVisible(true);
           }}
-        >
+          disabled={isSubmitting}>
           <Icon name="add" size={24} color="#fff" />
         </TouchableOpacity>
       </View>
 
-      {/* Classes List */}
       <ScrollView
         contentContainerStyle={[
           styles.classesContainer,
-          { paddingBottom: hasChanges ? 100 : 20 },
-        ]}
-      >
+          {paddingBottom: hasChanges ? 100 : 20},
+        ]}>
         {classes.length === 0 ? (
           <Text style={styles.emptyText}>No Classes Added Yet</Text>
         ) : (
           classes.map((cls, index) => (
-            <View key={`${cls.classCode}-${index}`} style={styles.classCard}>
+            <View
+              key={`${cls.classCode}-${cls.teacherCode}-${index}`}
+              style={styles.classCard}>
               <View style={styles.classInfo}>
                 <Text style={styles.classCode}>Class: {cls.classCode}</Text>
                 <Text style={styles.teacherCode}>Teacher: {cls.teacherCode}</Text>
               </View>
-              {!(user.email.startsWith('test_student') && cls.classCode === 'TEST_CLASS') && <View style={styles.classActions}>
-                <TouchableOpacity onPress={() => handleEdit(cls, index)}>
-                  <Icon name="create-outline" size={20} color="#4a8cff" />
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => handleDelete(index)}>
-                  <Icon name="trash-outline" size={20} color="#ff6b6b" />
-                </TouchableOpacity>
-              </View>}
+              {!(
+                user.email?.startsWith('test_student') && cls.classCode === 'TEST_CLASS'
+              ) && (
+                <View style={styles.classActions}>
+                  <TouchableOpacity
+                    onPress={() => handleEdit(cls, index)}
+                    disabled={isSubmitting}>
+                    <Icon name="create-outline" size={20} color="#4a8cff" />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => handleDelete(index)}
+                    disabled={isSubmitting}>
+                    <Icon name="trash-outline" size={20} color="#ff6b6b" />
+                  </TouchableOpacity>
+                </View>
+              )}
             </View>
           ))
         )}
       </ScrollView>
 
-      {/* Changes Buttons */}
       <Animated.View
         style={[
           styles.changesButtonsContainer,
-          { transform: [{ translateY: buttonsTranslateY }] },
-        ]}
-      >
+          {transform: [{translateY: buttonsTranslateY}]},
+        ]}>
         {hasChanges && (
           <>
             <TouchableOpacity
               style={[styles.changesButton, styles.resetButton]}
               onPress={handleResetChanges}
-            >
+              disabled={isSubmitting}>
               <Text style={styles.changesButtonText}>Discard</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.changesButton, styles.applyButton]}
               onPress={handleApplyChanges}
-            >
-              <Text style={styles.changesButtonText}>Save</Text>
+              disabled={isSubmitting}>
+              {isSubmitting ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={styles.changesButtonText}>Save</Text>
+              )}
             </TouchableOpacity>
           </>
         )}
       </Animated.View>
 
-      {/* Add/Edit Class Modal */}
       <Modal
         animationType="slide"
         transparent={true}
@@ -353,24 +370,20 @@ const ClassManagementStudent = () => {
         onRequestClose={() => {
           setModalVisible(false);
           resetForm();
-        }}
-      >
+        }}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitleA}>
               {isEditing ? 'Edit Class Details' : 'Add New Class'}
             </Text>
-            <Text style={styles.modalTitleB}>
-              Both fields are required
-            </Text>
-
+            <Text style={styles.modalTitleB}>Both fields are required</Text>
 
             <TextInput
               style={styles.input}
               placeholder="Class Code (e.g., OS, WCT)"
               placeholderTextColor="#666"
               value={currentClass.classCode}
-              onChangeText={(text) => handleInputChange('classCode', text)}
+              onChangeText={text => handleInputChange('classCode', text)}
               selectionColor="#4a8cff"
               underlineColorAndroid="transparent"
               autoCapitalize="characters"
@@ -382,7 +395,7 @@ const ClassManagementStudent = () => {
               placeholder="Teacher Code (e.g., AT, KKP)"
               placeholderTextColor="#666"
               value={currentClass.teacherCode}
-              onChangeText={(text) => handleInputChange('teacherCode', text)}
+              onChangeText={text => handleInputChange('teacherCode', text)}
               selectionColor="#4a8cff"
               underlineColorAndroid="transparent"
               autoCapitalize="characters"
@@ -398,14 +411,14 @@ const ClassManagementStudent = () => {
                   setModalVisible(false);
                   resetForm();
                 }}
-              >
+                disabled={isSubmitting}>
                 <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 style={[styles.modalButton, styles.submitButton]}
                 onPress={handleSubmit}
-              >
+                disabled={isSubmitting}>
                 <Text style={styles.submitButtonText}>
                   {isEditing ? 'Update' : 'Add'}
                 </Text>
@@ -462,9 +475,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    elevation: 2,
+    elevation: 10,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
+    shadowOffset: {width: 0, height: 1},
     shadowOpacity: 0.1,
     shadowRadius: 2,
   },
@@ -559,9 +572,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderTopWidth: 1,
     borderTopColor: '#e0e0e0',
-    elevation: 5,
+    elevation: 10,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
+    shadowOffset: {width: 0, height: -2},
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },

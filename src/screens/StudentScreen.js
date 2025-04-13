@@ -15,8 +15,8 @@ import {signOutUser} from '../services/FirebaseService';
 import {useAuth} from '../contexts/AuthContext';
 
 const {width} = Dimensions.get('window');
-const BUTTON_WIDTH = width * 0.44; // Adjusted for grid
-const BUTTON_HEIGHT = 250; // Taller buttons for better proportions
+const BUTTON_WIDTH = width * 0.42; // Adjusted for grid
+const BUTTON_HEIGHT = 180; // Taller buttons for better proportions
 
 // Placeholder image paths - replace with your actual image paths
 const IMAGES = {
@@ -105,7 +105,12 @@ const StudentScreen = ({navigation}) => {
   return (
     <View style={styles.container}>
       <Text style={styles.header}>Student Dashboard</Text>
-      <Text style={styles.subheader}>{user.email}</Text>
+      <View style={styles.infoTable}>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Email</Text>
+                <Text style={styles.infoValue}>{user.email}</Text>
+              </View>
+            </View>
       <View style={styles.gridContainer}>
         <View style={styles.row}>
           <SectionButton
@@ -177,7 +182,7 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 5,
+    elevation: 10,
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 4},
     shadowOpacity: 0.2,
@@ -194,15 +199,46 @@ const styles = StyleSheet.create({
     padding: 10,
   },
   buttonImage: {
-    width: 130,
-    height: 130,
-    marginBottom: 10,
+    width: 100,
+    height: 100,
+    marginBottom: 20,
   },
   buttonText: {
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
     textAlign: 'center',
+  },
+  infoTable: {
+    backgroundColor: 'white',
+    borderRadius: 10,
+    padding: 15,
+    marginBottom: 30,
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    marginTop: 30,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  infoLabel: {
+    textAlign: 'left',
+    width: '30%',
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#555',
+  },
+  infoValue: {
+    textAlign: 'center',
+    width: '70%',
+    fontSize: 16,
+    color: '#333',
   },
 });
 
