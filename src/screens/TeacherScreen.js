@@ -14,8 +14,8 @@ import {signOutUser} from '../services/FirebaseService';
 import {useAuth} from '../contexts/AuthContext';
 
 const {width} = Dimensions.get('window');
-const BUTTON_WIDTH = width * 0.44;
-const BUTTON_HEIGHT = 150;
+const BUTTON_WIDTH = width * 0.42;
+const BUTTON_HEIGHT = 180;
 
 const IMAGES = {
   attendance: require('../assets/images/attendance.png'),
@@ -52,7 +52,7 @@ const TeacherScreen = ({navigation}) => {
   };
 
   const handleAuthError = (operation, error) => {
-    Alert.alert(`${operation} Error`, error.message);
+    //Alert.alert(`${operation} Error`, error.message);
     console.log(`${operation} error:`, error);
   };
 
@@ -73,7 +73,16 @@ const TeacherScreen = ({navigation}) => {
   return (
     <View style={styles.container}>
       <Text style={styles.header}>Teacher Dashboard</Text>
-      <Text style={styles.subheader}>{user.email}</Text>
+      <View style={styles.infoTable}>
+        <View style={styles.infoRow}>
+          <Text style={styles.infoLabel}>Email</Text>
+          <Text style={styles.infoValue}>{user.email}</Text>
+        </View>
+        <View style={styles.infoRow}>
+          <Text style={styles.infoLabel}>Teacher Code</Text>
+          <Text style={styles.infoValue}>{user.teacherCode}</Text>
+        </View>
+      </View>
       <View style={styles.gridContainer}>
         <View style={styles.row}>
           <SectionButton
@@ -157,14 +166,44 @@ const styles = StyleSheet.create({
     padding: 10,
   },
   buttonImage: {
-    width: 60,
-    height: 60,
-    marginBottom: 10,
+    width: 80,
+    height: 80,
+    marginBottom: 20,
   },
   buttonText: {
     fontSize: 16,
     fontWeight: '600',
     textAlign: 'center',
+  },
+  infoTable: {
+    backgroundColor: 'white',
+    borderRadius: 10,
+    padding: 15,
+    marginBottom: 30,
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  infoLabel: {
+    textAlign: 'left',
+    width: '40%',
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#555',
+  },
+  infoValue: {
+    textAlign: 'center',
+    width: '60%',
+    fontSize: 16,
+    color: '#333',
   },
 });
 

@@ -12,7 +12,6 @@ import TeacherBluetoothScanScreen from '../screens/TeacherBluetoothScanScreen';
 import ClassManagementTeacher from '../screens/ClassManagementTeacher';
 import ClassManagementStudent from '../screens/ClassManagementStudent';
 import StudentBluetoothScanScreen from '../screens/StudentBluetoothScanScreen';
-import StudentAttendanceReport from '../screens/StudentAttendanceReport';
 import StudentViewReportScreen from '../screens/StudentViewReportScreen';
 import TeacherViewReportScreen from '../screens/TeacherViewReportScreen';
 import CameraScreen from '../screens/CameraScreen';
@@ -27,42 +26,46 @@ const AppNavigator = () => {
           <Stack.Screen name="AuthLoading" component={AuthLoadingScreen} />
           <Stack.Screen name="Login" component={LoginScreen} />
           <Stack.Screen name="Student" component={StudentScreen} />
-          <Stack.Screen
-            name="StudentAttendanceReport"
-            component={StudentAttendanceReport}
-          />
           <Stack.Screen name="Teacher" component={TeacherScreen} />
           <Stack.Screen
             name="ClassManagementStudent"
             component={ClassManagementStudent}
+            options={{title: 'Class Management'}}
           />
           <Stack.Screen
             name="TeacherAttendanceSetup"
             component={TeacherAttendanceSetup}
+            options={{title: 'Attendance Setup'}}
           />
           <Stack.Screen
             name="TeacherBluetoothScanScreen"
             component={TeacherBluetoothScanScreen}
+            options={{title: 'Bluetooth Screen'}}
           />
           <Stack.Screen
             name="StudentBluetoothScanScreen"
             component={StudentBluetoothScanScreen}
+            options={{title: 'Bluetooth Screen'}}
           />
           <Stack.Screen
             name="ClassManagementTeacher"
             component={ClassManagementTeacher}
+            options={{title: 'Class Management'}}
           />
           <Stack.Screen
             name="StudentViewReportScreen"
             component={StudentViewReportScreen}
+            options={{title: 'Attendance Report'}}
           />
           <Stack.Screen
             name="TeacherViewReportScreen"
             component={TeacherViewReportScreen}
+            options={{title: 'Attendance Report'}}
           />
           <Stack.Screen
             name="CameraScreen"
             component={CameraScreen}
+            options={{title: 'Camera'}}
           />
         </Stack.Navigator>
       </NavigationContainer>

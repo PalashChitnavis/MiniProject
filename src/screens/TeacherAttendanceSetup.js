@@ -121,7 +121,7 @@ const TeacherAttendanceSetup = ({navigation}) => {
           title="Start Session"
           width={200}
           onPress={handleSubmit}
-          color="#4a6da7"
+          color="#007BFF"
           icon="play-circle-filled"
         />
       </View>

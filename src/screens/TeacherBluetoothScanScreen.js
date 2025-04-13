@@ -34,8 +34,19 @@ const TeacherBluetoothScanScreen = ({route, navigation}) => {
     new Animated.Value(0.2),
     new Animated.Value(0.4),
   ]);
+  const [rotateAnim] = useState(new Animated.Value(0));
   const [classData, setClassData] = useState([]);
   const {classCode, teacherCode, classSize} = data;
+
+  const startRotation = () => {
+    rotateAnim.setValue(0); // Reset the animation
+    Animated.timing(rotateAnim, {
+      toValue: 1,
+      duration: 1000, // Duration of one full rotation
+      easing: Easing.linear,
+      useNativeDriver: true, // Important for performance
+    }).start();
+  };
 
   useEffect(() => {
     async function getClassData() {
@@ -44,6 +55,7 @@ const TeacherBluetoothScanScreen = ({route, navigation}) => {
     }
 
     getClassData();
+    handleRefresh();
   }, []);
 
   // useEffect(() => {
@@ -54,6 +66,8 @@ const TeacherBluetoothScanScreen = ({route, navigation}) => {
 
   const handleRefresh = async () => {
     console.log('Refresh button clicked');
+    startRotation(); // Start the rotation animation
+
     const resp = await getAttendanceTeacherCurrentDate(teacherCode, classCode);
     console.log(resp);
     setAttendanceData(resp);
@@ -181,6 +195,16 @@ const TeacherBluetoothScanScreen = ({route, navigation}) => {
                 {classSize.charAt(0).toUpperCase() + classSize.slice(1)}
               </Text>
             </View>
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Date:</Text>
+              <Text style={styles.infoValue}>
+                {new Date().toLocaleDateString('en-GB', {
+                  year: '2-digit',
+                  month: 'long',
+                  day: 'numeric',
+                })}
+              </Text>
+            </View>
           </View>
         </View>
 
@@ -189,15 +213,27 @@ const TeacherBluetoothScanScreen = ({route, navigation}) => {
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Attendance Record</Text>
             <TouchableOpacity
-              onPress={handleRefresh}
-              style={styles.refreshButton}
-              activeOpacity={0.7}>
-              <Image
-                source={require('../assets/images/refresh.png')}
-                style={styles.refreshIcon}
-              />
-              <Text style={styles.refreshText}>Refresh</Text>
-            </TouchableOpacity>
+  onPress={handleRefresh}
+  style={styles.refreshButton}
+  activeOpacity={0.7}>
+  <Animated.Image
+    source={require('../assets/images/refresh.png')}
+    style={[
+      styles.refreshIcon,
+      {
+        transform: [
+          {
+            rotate: rotateAnim.interpolate({
+              inputRange: [0, 1],
+              outputRange: ['0deg', '360deg'],
+            }),
+          },
+        ],
+      },
+    ]}
+  />
+  <Text style={styles.refreshText}>Refresh</Text>
+</TouchableOpacity>
           </View>
           <AttendanceSection
             attendanceData={attendanceData}
@@ -205,6 +241,7 @@ const TeacherBluetoothScanScreen = ({route, navigation}) => {
             teacherCode={classData.teacherCode}
             classCode={classData.classCode}
             handleRefresh={handleRefresh}
+            isBroadcasting={isBroadcasting}
           />
         </View>
       </View>

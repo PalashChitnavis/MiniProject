@@ -1,4 +1,4 @@
-/* eslint-disable no-alert */
+
 import React, {useState} from 'react';
 import {
   View,
@@ -7,6 +7,7 @@ import {
   ScrollView,
   StyleSheet,
   Image,
+  Alert,
 } from 'react-native';
 import {teacherCancelsAttendance, studentPutsAttendance} from '../services/DatabaseService';
 
@@ -16,6 +17,7 @@ const AttendanceSection = ({
   teacherCode,
   classCode,
   handleRefresh,
+  isBroadcasting,
 }) => {
   const [activeTab, setActiveTab] = useState('present');
 
@@ -24,24 +26,42 @@ const AttendanceSection = ({
     student => !attendanceData?.includes(student),
   );
 
+  const showStopAttendanceAlert = () => {
+    Alert.alert(
+      'Attendance in Progress',
+      'Please stop the current attendance session before modifying individual records',
+      [
+        { text: 'OK', style: 'cancel' },
+      ]
+    );
+  };
+
   const handleCancelAttendance = async studentEmail => {
+    if (isBroadcasting) {
+      showStopAttendanceAlert();
+      return;
+    }
     try {
       await teacherCancelsAttendance(teacherCode, classCode, studentEmail);
       console.log('Attendance cancelled successfully');
       await handleRefresh();
     } catch (error) {
-      alert('Error cancelling attendance: ' + error.message);
+      Alert('Error cancelling attendance: ' + error.message);
     }
   };
 
   // You'll need to implement this function
   const handleMarkPresent = async studentEmail => {
+    if (isBroadcasting) {
+      showStopAttendanceAlert();
+      return;
+    }
     try {
       await studentPutsAttendance(teacherCode, classCode, studentEmail);
       console.log('Attendance marked successfully');
       await handleRefresh();
     } catch (error) {
-      alert('Error marking attendance: ' + error.message);
+      Alert('Error marking attendance: ' + error.message);
     }
   };
 
@@ -93,8 +113,8 @@ const AttendanceSection = ({
                   onPress={() => handleCancelAttendance(student)}
                   style={styles.actionButton}>
                   <Image
-                    source={require('../assets/images/clock.png')}
-                    style={styles.actionImage}
+                    source={require('../assets/images/cross.png')}
+                    style={styles.actionImageCross}
                   />
                 </TouchableOpacity>
               </View>
@@ -119,7 +139,7 @@ const AttendanceSection = ({
                 onPress={() => handleMarkPresent(student)}
                 style={styles.actionButton}>
                 <Image
-                  source={require('../assets/images/clock.png')}
+                  source={require('../assets/images/check.png')}
                   style={styles.actionImage}
                 />
               </TouchableOpacity>
@@ -195,6 +215,11 @@ const styles = StyleSheet.create({
   actionImage: {
     width: 24,
     height: 24,
+    resizeMode: 'contain',
+  },
+  actionImageCross: {
+    width: 28,
+    height: 28,
     resizeMode: 'contain',
   },
   noStudentsText: {

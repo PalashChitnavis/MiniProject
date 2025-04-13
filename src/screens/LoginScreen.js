@@ -7,6 +7,7 @@ import {
   SafeAreaView,
   ActivityIndicator,
   Alert,
+  Modal,
 } from 'react-native';
 import {googleLogin, signOutUser} from '../services/FirebaseService';
 import { useAuth } from '../contexts/AuthContext';
@@ -14,10 +15,15 @@ import { useNavigation } from '@react-navigation/native';
 import { addStudentToClass, createUser, getUser } from '../services/DatabaseService';
 
 const LoginScreen = () => {
-  const {user, storeUser} = useAuth();
+  const {storeUser} = useAuth();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigation = useNavigation();
+  const [errorModal, setErrorModal] = useState({
+    visible: false,
+    operation: '',
+    message: '',
+  });
 
   const handleLogin = async () => {
     try {
@@ -28,11 +34,25 @@ const LoginScreen = () => {
 
       if (dbuser.type === 'student') {
         if (!dbuser.photoUrl) {
-          // Use Alert with buttons that handle navigation
           Alert.alert(
             'First Time User',
             'As a first time user, please upload your profile picture for attendance verification',
             [
+              {
+                text: 'Cancel',
+                style: 'destructive',
+                onPress: async () => {
+                  try {
+                    await signOutUser();
+                    navigation.reset({
+                      index: 0,
+                      routes: [{ name: 'Login' }],
+                    });
+                  } catch (error) {
+                    handleAuthError('Logout', error);
+                  }
+                },
+              },
               {
                 text: 'OK',
                 onPress: () => navigation.replace('CameraScreen', { first: true }),
@@ -74,8 +94,13 @@ const LoginScreen = () => {
 
   const handleAuthError = (operation, error) => {
     setLoading(false);
-    Alert.alert(`${operation} Error`, error.message);
     console.log(`${operation} error:`, error);
+
+    setErrorModal({
+      visible: true,
+      operation: operation,
+      message: error.message || 'Something went wrong',
+    });
   };
 
   const handleTestStudent = async () => {
@@ -103,6 +128,21 @@ const LoginScreen = () => {
           'First Time User',
           'As a first time user, please upload your profile picture for attendance verification',
           [
+            {
+              text: 'Cancel',
+              style: 'destructive',
+              onPress: async () => {
+                try {
+                  await signOutUser();
+                  navigation.reset({
+                    index: 0,
+                    routes: [{ name: 'Login' }],
+                  });
+                } catch (error) {
+                  handleAuthError('Logout', error);
+                }
+              },
+            },
             {
               text: 'OK',
               onPress: () => navigation.replace('CameraScreen', { first: true }),
@@ -188,6 +228,30 @@ const LoginScreen = () => {
           </>
         )}
       </View>
+      <Modal
+  visible={errorModal.visible}
+  transparent={true}
+  animationType="fade"
+  onRequestClose={() => {}} // Makes it non-cancellable by back button
+>
+  <View style={styles.modalOverlay}>
+    <View style={styles.modalContainer}>
+      <Text style={styles.modalTitle}>{errorModal.operation} Error</Text>
+      <Pressable
+        style={styles.modalButton}
+        onPress={() => {
+          setErrorModal({...errorModal, visible: false});
+          navigation.reset({
+            index: 0,
+            routes: [{ name: 'Login' }],
+          });
+        }}
+      >
+        <Text style={styles.modalButtonText}>Return to Login</Text>
+      </Pressable>
+    </View>
+  </View>
+</Modal>
     </SafeAreaView>
   );
 };
@@ -259,6 +323,42 @@ const styles = StyleSheet.create({
     backgroundColor: '#34A853',
   },
   testButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  modalContainer: {
+    width: '80%',
+    backgroundColor: 'white',
+    borderRadius: 10,
+    padding: 20,
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    color: '#ff4444',
+  },
+  modalText: {
+    fontSize: 16,
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  modalButton: {
+    backgroundColor: '#ff4444',
+    padding: 12,
+    borderRadius: 8,
+    width: '100%',
+    alignItems: 'center',
+  },
+  modalButtonText: {
     color: 'white',
     fontSize: 16,
     fontWeight: '500',

@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable react-native/no-inline-styles */
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, use } from 'react';
 import {
   View,
   Text,
@@ -124,7 +124,7 @@ const ClassManagementTeacher = () => {
   // Check if class already exists
   const classExists = (cls) => {
     return classes.some(existingClass =>
-      existingClass.classCode === cls.classCode
+      existingClass.classCode.toUpperCase() === cls.classCode.toUpperCase()
     );
   };
 
@@ -138,8 +138,13 @@ const ClassManagementTeacher = () => {
 
   // Submit class (add or update)
   const handleSubmit = () => {
-    if (!currentClass.classCode) {
-      Alert.alert('Error', 'Please enter a class code');
+    if (!currentClass.classCode.trim()) {
+      Alert.alert('Error', 'Please enter a valid class code');
+      return;
+    }
+
+    if (!/^[A-Za-z]+$/.test(currentClass.classCode.trim())) {
+      Alert.alert('Error', 'Class code should contain only letters');
       return;
     }
 
@@ -212,9 +217,9 @@ const ClassManagementTeacher = () => {
     const updatedUser = {...user, classes: normalizedClasses};
     await storeUser(updatedUser);
     await updateUser(updatedUser);
-    for (const cls of normalizedClasses) {
-      await upsertClassesTeacher(user.teacherCode, cls.classCode);
-    }
+    await Promise.all(normalizedClasses.map(cls =>
+      upsertClassesTeacher(user.teacherCode, cls.classCode)
+    ));
     setHasChanges(false);
     animateButtonsOut();
     Alert.alert('Success', 'Changes have been saved');
@@ -268,7 +273,7 @@ const ClassManagementTeacher = () => {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerText}>My Class Codes</Text>
+        <Text style={styles.headerText}>Class Codes For {user.teacherCode}</Text>
         <TouchableOpacity
           style={styles.addButton}
           onPress={() => {
@@ -439,7 +444,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    elevation: 2,
+    elevation: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
