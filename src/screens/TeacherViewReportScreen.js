@@ -8,6 +8,8 @@ import {
   FlatList,
   SafeAreaView,
   ScrollView,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import {useAuth} from '../contexts/AuthContext';
 import {
@@ -15,6 +17,9 @@ import {
   upsertClassesTeacher,
 } from '../services/DatabaseService';
 import {Calendar} from 'react-native-calendars';
+import {CSV} from 'react-native-csv';
+import RNFS from 'react-native-fs';
+import Share from 'react-native-share';
 
 const TeacherViewReportScreen = () => {
   const {user} = useAuth();
@@ -22,6 +27,8 @@ const TeacherViewReportScreen = () => {
 
   const [selectedClass, setSelectedClass] = useState(null);
   const [activeTab, setActiveTab] = useState('attendance');
+
+  const [exportTriggered, setExportTriggered] = useState(false);
 
   useEffect(() => {
     console.log(attendanceData);
@@ -96,96 +103,95 @@ const TeacherViewReportScreen = () => {
     fetchAttendanceReports();
   }, [user]);
 
-  // Sample data (will be replaced with your actual data)
-  const classes = [
-    {
-      id: '1',
-      name: 'Mathematics',
-      code: 'MATH101',
-      students: 28,
-      nextClass: 'Today, 10:00 AM',
-    },
-    {
-      id: '2',
-      name: 'Advanced Calculus',
-      code: 'MATH301',
-      students: 18,
-      nextClass: 'Tomorrow, 2:00 PM',
-    },
-    {
-      id: '3',
-      name: 'Linear Algebra',
-      code: 'MATH202',
-      students: 24,
-      nextClass: 'Apr 8, 9:00 AM',
-    },
-    {
-      id: '4',
-      name: 'Discrete Mathematics',
-      code: 'MATH210',
-      students: 22,
-      nextClass: 'Apr 10, 1:00 PM',
-    },
-  ];
+  const [isExporting, setIsExporting] = useState(false);
 
-  const sessionData = [
-    {
-      id: '1',
-      date: 'Apr 3, 2025',
-      topic: 'Integration Techniques',
-      present: 25,
-      absent: 3,
-      students: [
-        {id: '101', name: 'Alice Johnson', status: 'present'},
-        {id: '102', name: 'Bob Smith', status: 'present'},
-        {id: '103', name: 'Charlie Brown', status: 'absent'},
-        {id: '104', name: 'Diana Parker', status: 'present'},
-        {id: '105', name: 'Edward Miller', status: 'present'},
-        {id: '106', name: 'Fiona Wilson', status: 'absent'},
-      ],
-    },
-    {
-      id: '2',
-      date: 'Mar 31, 2025',
-      topic: 'Differential Equations',
-      present: 26,
-      absent: 2,
-      students: [
-        {id: '101', name: 'Alice Johnson', status: 'present'},
-        {id: '102', name: 'Bob Smith', status: 'present'},
-        {id: '103', name: 'Charlie Brown', status: 'present'},
-        {id: '104', name: 'Diana Parker', status: 'absent'},
-        {id: '105', name: 'Edward Miller', status: 'present'},
-        {id: '106', name: 'Fiona Wilson', status: 'absent'},
-      ],
-    },
-    {
-      id: '3',
-      date: 'Mar 27, 2025',
-      topic: 'Limits and Continuity',
-      present: 24,
-      absent: 4,
-      students: [
-        {id: '101', name: 'Alice Johnson', status: 'present'},
-        {id: '102', name: 'Bob Smith', status: 'absent'},
-        {id: '103', name: 'Charlie Brown', status: 'present'},
-        {id: '104', name: 'Diana Parker', status: 'present'},
-        {id: '105', name: 'Edward Miller', status: 'absent'},
-        {id: '106', name: 'Fiona Wilson', status: 'present'},
-      ],
-    },
-  ];
+  const handleExportData = async () => {
+    if (!selectedClass) {
+      Alert.alert('Error', 'No class selected');
+      return;
+    }
 
-  const enrolledStudents = [
-    {id: '101', name: 'Alice Johnson', rollNo: '2023001', attendance: 92},
-    {id: '102', name: 'Bob Smith', rollNo: '2023002', attendance: 85},
-    {id: '103', name: 'Charlie Brown', rollNo: '2023003', attendance: 78},
-    {id: '104', name: 'Diana Parker', rollNo: '2023004', attendance: 95},
-    {id: '105', name: 'Edward Miller', rollNo: '2023005', attendance: 88},
-    {id: '106', name: 'Fiona Wilson', rollNo: '2023006', attendance: 72},
-    {id: '107', name: 'George Adams', rollNo: '2023007', attendance: 90},
-    {id: '108', name: 'Hannah Martin', rollNo: '2023008', attendance: 83},
-  ];
+    setIsExporting(true);
+
+    try {
+      // Process the attendance data to generate CSV content
+      const csvRows = [];
+
+      // Add header rows with class information
+      csvRows.push(`Class: ${selectedClass.classCode}`);
+      csvRows.push(`Teacher: ${user.teacherCode}`);
+      csvRows.push(''); // Empty row for spacing
+
+      // Prepare the header row with dates
+      const headerRow = ['Student Email'];
+      selectedClass.datesConducted.forEach(date => {
+        headerRow.push(date);
+      });
+      headerRow.push('Attendance %');
+      csvRows.push(headerRow.join(','));
+
+      // Sort students by email
+      const sortedStudents = [...selectedClass.enrolledStudents].sort();
+
+      // Process each student's attendance data
+      sortedStudents.forEach(student => {
+        const studentRow = [student];
+        let presentCount = 0;
+
+        selectedClass.datesConducted.forEach(date => {
+          // Check if student was present on this date
+          const classSession = selectedClass.report.classes.find(
+            session => session.date === date,
+          );
+
+          const isPresent =
+            classSession && classSession.present.includes(student);
+          studentRow.push(isPresent ? '1' : '0');
+          if (isPresent) presentCount++;
+        });
+
+        // Calculate attendance percentage
+        const percentage =
+          selectedClass.datesConducted.length > 0
+            ? (
+                (presentCount / selectedClass.datesConducted.length) *
+                100
+              ).toFixed(2)
+            : '0.00';
+        studentRow.push(`${percentage}%`);
+
+        csvRows.push(studentRow.join(','));
+      });
+
+      // Join all rows with newlines to create CSV content
+      const csvContent = csvRows.join('\n');
+
+      // Define file path for saving
+      const fileName = `attendance_${selectedClass.classCode}_${
+        new Date().toISOString().split('T')[0]
+      }.csv`;
+      const filePath = `${RNFS.DocumentDirectoryPath}/${fileName}`;
+
+      // Write CSV content to file
+      await RNFS.writeFile(filePath, csvContent, 'utf8');
+
+      // Open share dialog
+      const shareOptions = {
+        title: 'Export Attendance',
+        message: `Attendance Report for ${selectedClass.classCode}`,
+        url: `file://${filePath}`,
+        type: 'text/csv',
+      };
+
+      await Share.open(shareOptions);
+      Alert.alert('Success', 'Attendance data exported successfully');
+    } catch (error) {
+      console.error('Export failed:', error);
+      Alert.alert('Error', 'Failed to export attendance data');
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const renderClassItem = ({item}) => (
     <TouchableOpacity
@@ -195,11 +201,6 @@ const TeacherViewReportScreen = () => {
         <View>
           <Text style={styles.className}>{item.classCode}</Text>
           <Text style={styles.classCode}>{user.teacherCode}</Text>
-          {/* <View style={styles.classStats}>
-            <Text style={styles.classStatsText}>{item.students} students</Text>
-            <View style={styles.statsDivider} />
-            <Text style={styles.classStatsText}>Next: {item.nextClass}</Text>
-          </View> */}
         </View>
         <Text style={styles.arrowIcon}>→</Text>
       </View>
@@ -237,24 +238,29 @@ const TeacherViewReportScreen = () => {
       </View>
 
       <Text style={styles.studentListHeader}>Students</Text>
-      {item?.present?.map(student => (
-        <View key={student.id} style={styles.studentRow}>
-          <Text style={styles.studentName}>{student}</Text>
-          <View style={[styles.statusBadge, styles.presentBadge]}>
-            <Text style={[styles.statusText, styles.presentText]}>
-              'Present'
-            </Text>
+      <ScrollView
+        style={styles.studentScrollView}
+        showsVerticalScrollIndicator={true}
+        contentContainerStyle={styles.studentScrollContent}>
+        {item?.present?.map(student => (
+          <View key={student} style={styles.studentRow}>
+            <Text style={styles.studentName}>{student}</Text>
+            <View style={[styles.statusBadge, styles.presentBadge]}>
+              <Text style={[styles.statusText, styles.presentText]}>
+                Present
+              </Text>
+            </View>
           </View>
-        </View>
-      ))}
-      {item?.absent?.map(student => (
-        <View key={student.id} style={styles.studentRow}>
-          <Text style={styles.studentName}>{student}</Text>
-          <View style={[styles.statusBadge, styles.absentBadge]}>
-            <Text style={[styles.statusText, styles.absentText]}>'Absent'</Text>
+        ))}
+        {item?.absent?.map(student => (
+          <View key={student} style={styles.studentRow}>
+            <Text style={styles.studentName}>{student}</Text>
+            <View style={[styles.statusBadge, styles.absentBadge]}>
+              <Text style={[styles.statusText, styles.absentText]}>Absent</Text>
+            </View>
           </View>
-        </View>
-      ))}
+        ))}
+      </ScrollView>
     </View>
   );
 
@@ -262,14 +268,6 @@ const TeacherViewReportScreen = () => {
     <View style={styles.studentCard}>
       <View style={styles.studentInfo}>
         <Text style={styles.studentName}>{item}</Text>
-        {/* <Text style={styles.studentId}>Roll No: {item.rollNo}</Text> */}
-      </View>
-      <View
-        style={[
-          styles.attendanceIndicator,
-          //   {backgroundColor: getAttendanceColor(item.attendance)},
-        ]}>
-        {/* <Text style={styles.attendanceText}>{item.attendance}%</Text> */}
       </View>
     </View>
   );
@@ -313,14 +311,20 @@ const TeacherViewReportScreen = () => {
           </View>
 
           <View style={styles.content}>
-            {activeTab === 'attendance' ? (
-              <FlatList
-                data={selectedClass?.report?.classes}
-                renderItem={renderSessionItem}
-                keyExtractor={item => item.id}
-                contentContainerStyle={styles.sessionsList}
-              />
-            ) : (
+            {activeTab === 'attendance' && (
+              <ScrollView
+                style={styles.studentScrollView3}
+                showsVerticalScrollIndicator={true}
+                contentContainerStyle={styles.studentScrollContent}>
+                <FlatList
+                  data={selectedClass?.report?.classes}
+                  renderItem={renderSessionItem}
+                  keyExtractor={item => item.id}
+                  contentContainerStyle={styles.sessionsList}
+                />
+              </ScrollView>
+            )}
+            {activeTab === 'details' && (
               <View style={styles.classDetailsContainer}>
                 <View style={styles.classInfoCard}>
                   <Text style={styles.classInfoTitle}>Class Information</Text>
@@ -343,14 +347,51 @@ const TeacherViewReportScreen = () => {
                 </View>
 
                 <Text style={styles.enrolledTitle}>Enrolled Students</Text>
-                <FlatList
-                  data={selectedClass?.enrolledStudents}
-                  renderItem={renderStudentItem}
-                  keyExtractor={item => item.id}
-                  contentContainerStyle={styles.enrolledList}
-                  scrollEnabled={false}
-                  nestedScrollEnabled={true}
-                />
+                <ScrollView
+                  style={styles.studentScrollView2}
+                  showsVerticalScrollIndicator={true}
+                  contentContainerStyle={styles.studentScrollContent}>
+                  <FlatList
+                    data={selectedClass?.enrolledStudents}
+                    renderItem={renderStudentItem}
+                    keyExtractor={item => item.id}
+                    contentContainerStyle={styles.enrolledList}
+                    scrollEnabled={false}
+                    nestedScrollEnabled={true}
+                  />
+                </ScrollView>
+              </View>
+            )}
+            {/* In your content section */}
+            {activeTab === 'export' && (
+              <View style={styles.exportContainer}>
+                <Text style={styles.exportTitle}>Export Attendance Data</Text>
+
+                {/* Data summary preview */}
+                <View style={styles.dataPreview}>
+                  <Text style={styles.previewText}>
+                    {selectedClass?.report?.classes?.length || 0} sessions
+                    available
+                  </Text>
+                  <Text style={styles.previewText}>
+                    {selectedClass?.enrolledStudents?.length || 0} students
+                  </Text>
+                </View>
+
+                {/* Export button */}
+                <TouchableOpacity
+                  style={[
+                    styles.exportButton,
+                    isExporting && styles.exportButtonDisabled,
+                  ]}
+                  onPress={handleExportData}
+                  disabled={isExporting}>
+                  {isExporting ? (
+                    <ActivityIndicator color="white" />
+                  ) : (
+                    <Text style={styles.exportButtonText}>Export as CSV</Text>
+                  )}
+                </TouchableOpacity>
               </View>
             )}
           </View>
@@ -381,6 +422,17 @@ const TeacherViewReportScreen = () => {
                 Class Details
               </Text>
             </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.tab, activeTab === 'export' && styles.activeTab]}
+              onPress={() => setActiveTab('export')}>
+              <Text
+                style={[
+                  styles.tabText,
+                  activeTab === 'export' && styles.activeTabText,
+                ]}>
+                Export Data
+              </Text>
+            </TouchableOpacity>
           </View>
         </>
       )}
@@ -400,7 +452,7 @@ const styles = StyleSheet.create({
     shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.1,
     shadowRadius: 3,
-    elevation: 3,
+    elevation: 10,
   },
   headerTitle: {
     fontSize: 22,
@@ -418,7 +470,7 @@ const styles = StyleSheet.create({
     shadowOffset: {width: 0, height: 1},
     shadowOpacity: 0.05,
     shadowRadius: 2,
-    elevation: 1,
+    elevation: 10,
   },
   classCardContent: {
     padding: 16,
@@ -477,7 +529,7 @@ const styles = StyleSheet.create({
     shadowOffset: {width: 0, height: 1},
     shadowOpacity: 0.05,
     shadowRadius: 2,
-    elevation: 1,
+    elevation: 10,
   },
   sessionHeader: {
     flexDirection: 'row',
@@ -564,7 +616,7 @@ const styles = StyleSheet.create({
     shadowOffset: {width: 0, height: -2},
     shadowOpacity: 0.1,
     shadowRadius: 3,
-    elevation: 3,
+    elevation: 10,
   },
   tab: {
     flex: 1,
@@ -592,11 +644,11 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 16,
     marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 1},
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    // shadowColor: '#000',
+    // shadowOffset: {width: 0, height: 1},
+    // shadowOpacity: 0.05,
+    // shadowRadius: 2,
+    elevation: 10,
   },
   classInfoTitle: {
     fontSize: 16,
@@ -637,11 +689,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 8,
     marginBottom: 8,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 1},
-    shadowOpacity: 0.05,
-    shadowRadius: 1,
-    elevation: 1,
+    marginHorizontal: 2,
+    // shadowColor: '#000',
+    // shadowOffset: {width: 0, height: 1},
+    // shadowOpacity: 0.05,
+    // shadowRadius: 1,
+    elevation: 3,
   },
   studentInfo: {
     flex: 1,
@@ -660,6 +713,65 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '600',
     fontSize: 12,
+  },
+  studentScrollView: {
+    maxHeight: 200, // Fixed height for scrollable area
+    width: '100%', // Takes full width of parent
+  },
+  studentScrollView2: {
+    maxHeight: 400, // Fixed height for scrollable area
+    width: '100%', // Takes full width of parent
+  },
+  studentScrollView3: {
+    maxHeight: 800, // Fixed height for scrollable area
+    width: '100%', // Takes full width of parent
+  },
+  studentScrollContent: {
+    paddingBottom: 16, // Add some bottom padding
+  },
+  studentRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+    width: '100%', // Ensure full width
+  },
+  exportContainer: {
+    flex: 1,
+    padding: 20,
+  },
+  exportTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    color: '#333',
+  },
+  dataPreview: {
+    backgroundColor: '#f8f9fa',
+    padding: 15,
+    borderRadius: 8,
+    marginBottom: 20,
+  },
+  previewText: {
+    fontSize: 14,
+    marginBottom: 5,
+  },
+  exportButton: {
+    backgroundColor: '#28a745', // Green color
+    padding: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  exportButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  exportButtonDisabled: {
+    backgroundColor: '#6c757d', // Gray color when disabled
   },
 });
 

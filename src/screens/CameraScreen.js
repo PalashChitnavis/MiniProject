@@ -170,6 +170,7 @@ const CameraScreen = ({route}) => {
         onPhotoVerified(result.matched && result.similarity >= 70);
         setUploadStatus('verified');
       } else {
+        setUploadStatus('notverified');
         Alert.alert(
           'Verification Failed',
           `Photo did not match (${
@@ -186,7 +187,6 @@ const CameraScreen = ({route}) => {
       );
     } finally {
       setIsUploading(false);
-      setUploadStatus('verified');
     }
   };
 
@@ -268,6 +268,27 @@ const CameraScreen = ({route}) => {
           onPress={handleOK}
           activeOpacity={0.7}>
           <Text style={styles.okButtonText}>Done</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+  if (uploadStatus === 'notverified') {
+    return (
+      <View style={styles.statusContainer}>
+        <View style={styles.notVerifiedAnimation}>
+          <View style={styles.crossCircle}>
+            <Text style={styles.notVerifiedIcon}>✕</Text>
+          </View>
+        </View>
+        <Text style={styles.notVerifiedText}>Attendance Not Verified</Text>
+        <Text style={styles.notVerifiedSubtext}>
+          Photo did not match our records
+        </Text>
+        <TouchableOpacity
+          style={styles.tryAgainButton}
+          onPress={() => navigation.goBack()}
+          activeOpacity={0.7}>
+          <Text style={styles.tryAgainButtonText}>Try Again</Text>
         </TouchableOpacity>
       </View>
     );
@@ -545,6 +566,49 @@ const styles = StyleSheet.create({
     height: 60,
     borderRadius: 30,
     backgroundColor: '#FFFFFF',
+  },
+  notVerifiedAnimation: {
+    marginBottom: 20,
+    alignItems: 'center',
+  },
+  crossCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#FFEBEE', // Light red background
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#F44336', // Red border
+  },
+  notVerifiedIcon: {
+    color: '#F44336', // Red color
+    fontSize: 40,
+    fontWeight: 'bold',
+  },
+  notVerifiedText: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#F44336', // Red color
+    marginBottom: 10,
+  },
+  notVerifiedSubtext: {
+    fontSize: 16,
+    color: '#616161', // Gray color
+    textAlign: 'center',
+    marginBottom: 30,
+    paddingHorizontal: 20,
+  },
+  tryAgainButton: {
+    backgroundColor: '#F44336', // Red color
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+    borderRadius: 25,
+  },
+  tryAgainButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 

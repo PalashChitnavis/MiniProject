@@ -290,7 +290,7 @@ const StudentViewReportScreen = () => {
                   markedDates={getMarkedDates()}
                   renderHeader={date => {
                     // Format date to your custom title, e.g., "My Attendance Calendar"
-                    const header = 'My Attendance Calendar';
+                    const header = 'calender';
                     return (
                       <Text
                         style={{

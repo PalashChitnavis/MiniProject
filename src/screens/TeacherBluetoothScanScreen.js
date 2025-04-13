@@ -125,7 +125,10 @@ const TeacherBluetoothScanScreen = ({route, navigation}) => {
       const started = await startBluetoothAdvertising(bluetoothData);
 
       if (started) {
-        const resp = await getAttendanceTeacherCurrentDate(teacherCode, classCode);
+        const resp = await getAttendanceTeacherCurrentDate(
+          teacherCode,
+          classCode,
+        );
         setAttendanceData(resp);
         setIsBroadcasting(true);
       }
@@ -213,27 +216,27 @@ const TeacherBluetoothScanScreen = ({route, navigation}) => {
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Attendance Record</Text>
             <TouchableOpacity
-  onPress={handleRefresh}
-  style={styles.refreshButton}
-  activeOpacity={0.7}>
-  <Animated.Image
-    source={require('../assets/images/refresh.png')}
-    style={[
-      styles.refreshIcon,
-      {
-        transform: [
-          {
-            rotate: rotateAnim.interpolate({
-              inputRange: [0, 1],
-              outputRange: ['0deg', '360deg'],
-            }),
-          },
-        ],
-      },
-    ]}
-  />
-  <Text style={styles.refreshText}>Refresh</Text>
-</TouchableOpacity>
+              onPress={handleRefresh}
+              style={styles.refreshButton}
+              activeOpacity={0.7}>
+              <Animated.Image
+                source={require('../assets/images/refresh.png')}
+                style={[
+                  styles.refreshIcon,
+                  {
+                    transform: [
+                      {
+                        rotate: rotateAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: ['0deg', '360deg'],
+                        }),
+                      },
+                    ],
+                  },
+                ]}
+              />
+              <Text style={styles.refreshText}>Refresh</Text>
+            </TouchableOpacity>
           </View>
           <AttendanceSection
             attendanceData={attendanceData}
@@ -293,15 +296,16 @@ const styles = StyleSheet.create({
   },
   animationSection: {
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 60,
     height: 100,
     width: '100%',
   },
   animationContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    width: 120,
-    height: 120,
+    width: 150,
+    height: 150,
+    marginBottom: 20,
   },
   bluetoothIconContainer: {
     position: 'absolute',
@@ -316,8 +320,8 @@ const styles = StyleSheet.create({
   },
   circle: {
     position: 'absolute',
-    width: 100,
-    height: 100,
+    width: 50,
+    height: 50,
     borderRadius: 60,
     backgroundColor: '#3498db',
   },

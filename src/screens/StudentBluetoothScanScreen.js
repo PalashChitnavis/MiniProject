@@ -8,8 +8,7 @@ import {
   stopBluetoothScanning,
 } from '../services/BluetoothService';
 import {useAuth} from '../contexts/AuthContext';
-import { studentPutsAttendance } from '../services/DatabaseService';
-
+import {studentPutsAttendance} from '../services/DatabaseService';
 
 const StudentBluetoothScanScreen = ({navigation}) => {
   const {user} = useAuth();
@@ -100,7 +99,7 @@ const StudentBluetoothScanScreen = ({navigation}) => {
                     style: 'cancel',
                   },
                 ],
-                { cancelable: false }
+                {cancelable: false},
               );
             });
 
@@ -113,25 +112,33 @@ const StudentBluetoothScanScreen = ({navigation}) => {
             // Navigate to CameraScreen for verification
             navigation.navigate('CameraScreen', {
               first: false,
-              onPhotoVerified: async (isVerified) => {
+              onPhotoVerified: async isVerified => {
                 if (isVerified) {
                   // If photo is verified, mark attendance
                   studentPutsAttendance(
                     bluetoothData.teacherCode,
                     bluetoothData.classCode,
-                    user.email
-                  ).then(result => {
-                    if (result) {
-                      Alert.alert('Success', 'Attendance marked successfully!');
-                      navigation.replace('Student');
-                    } else {
-                      throw new Error('Failed to mark attendance');
-                    }
-                  }).catch(error => {
-                    Alert.alert('Error', 'Failed to mark attendance');
-                  });
+                    user.email,
+                  )
+                    .then(result => {
+                      if (result) {
+                        Alert.alert(
+                          'Success',
+                          'Attendance marked successfully!',
+                        );
+                        navigation.replace('Student');
+                      } else {
+                        throw new Error('Failed to mark attendance');
+                      }
+                    })
+                    .catch(error => {
+                      Alert.alert('Error', 'Failed to mark attendance');
+                    });
                 } else {
-                  Alert.alert('Verification Failed', 'Photo did not match our records');
+                  Alert.alert(
+                    'Verification Failed',
+                    'Photo did not match our records',
+                  );
                 }
               },
             });
@@ -146,7 +153,7 @@ const StudentBluetoothScanScreen = ({navigation}) => {
         },
       ],
     );
-};
+  };
 
   return (
     <View style={styles.container}>
@@ -219,8 +226,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 40,
-    width: 150,
-    height: 150,
+    width: 200,
+    height: 200,
   },
   bluetoothIconContainer: {
     position: 'absolute',
@@ -235,8 +242,8 @@ const styles = StyleSheet.create({
   },
   circle: {
     position: 'absolute',
-    width: 150,
-    height: 150,
+    width: 80,
+    height: 80,
     borderRadius: 75,
     backgroundColor: '#009EFF',
   },
