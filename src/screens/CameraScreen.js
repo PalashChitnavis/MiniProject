@@ -1,3 +1,5 @@
+/* eslint-disable no-dupe-keys */
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, {useState, useRef, useEffect} from 'react';
 import {
   StyleSheet,
@@ -17,8 +19,6 @@ import {
   imageToBase64,
   uploadUserPhoto,
 } from '../services/ImageService';
-import {getUser} from '../services/DatabaseService';
-import deviceInfo from 'react-native-device-info';
 
 const CameraScreen = ({route}) => {
   const {user} = useAuth();
@@ -32,7 +32,7 @@ const CameraScreen = ({route}) => {
   const navigation = useNavigation();
   const isFirstTime = route.params?.first ?? false;
   const [uploadProgress, setUploadProgress] = useState(0);
-  const {teacherCode, classCode, studentEmail} = route.params;
+  const {teacherCode, classCode, studentEmail, photoUrl} = route.params;
   const progressAnimation = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -161,42 +161,13 @@ const CameraScreen = ({route}) => {
 
     try {
       setIsUploading(true);
-      const dbUser = await getUser(user.email);
 
-      console.log('Retrieved user from Firebase:', dbUser); // Debug log
-
-      if (!dbUser.photoUrl) {
-        throw new Error('No reference photo found');
-      }
-
-      // Check if deviceId exists in user document
-      if (!dbUser.deviceId) {
-        console.warn('No deviceId found in user document');
-        Alert.alert(
-          'Verification Failed',
-          'This account is not properly registered on this device',
-        );
-        return;
-      }
-
-      const deviceId = await deviceInfo.getUniqueId();
-      const firebaseId = dbUser.deviceId;
-
-      console.log(`Device IDs - Current: ${deviceId}, Firebase: ${firebaseId}`); // Debug log
-
-      if (deviceId !== firebaseId) {
-        Alert.alert(
-          'Verification Failed',
-          `Device ID mismatch. \nOriginal Device: ${firebaseId} \nCurrent Device: ${deviceId}`,
-        );
-        return;
-      }
 
       setUploadStatus('processing');
       const progressInterval = startProgressInterval();
 
       // Rest of your image processing code...
-      const firebaseImageResponse = await fetch(dbUser.photoUrl);
+      const firebaseImageResponse = await fetch(photoUrl);
       const firebaseImageBlob = await firebaseImageResponse.blob();
 
       const [sourceBase64, targetBase64] = await Promise.all([
@@ -213,11 +184,6 @@ const CameraScreen = ({route}) => {
       // Fix the issue with directly reassigning result
       let result = await compareFaces(sourceBase64, targetBase64);
 
-      // Temporary override for testing - remove in production
-      result = {
-        matched: true,
-        similarity: 85.0,
-      };
       console.log('Face comparison result:', result);
 
       clearInterval(progressInterval);
@@ -238,7 +204,7 @@ const CameraScreen = ({route}) => {
       }
     } catch (error) {
       console.error('Error in handleAcceptAttendance:', error);
-      setUploadStatus(null);
+      setUploadStatus('notverified');
       Alert.alert(
         'Error',
         error.message || 'Failed to complete the process. Please try again.',

@@ -26,6 +26,7 @@ const StudentBluetoothScanScreen = () => {
     new Animated.Value(0.2),
     new Animated.Value(0.4),
   ]);
+  const [updatedUser,setUpdatedUser] = useState(user);
 
   // Fetch device IDs on mount
   useEffect(() => {
@@ -40,6 +41,7 @@ const StudentBluetoothScanScreen = () => {
         }
 
         const dbUser = await getUser(user.email);
+        setUpdatedUser(dbUser);
         setFirebaseDeviceId(dbUser.deviceId || null);
         setIsDeviceValid(dbUser.deviceId && deviceId === dbUser.deviceId);
       } catch (error) {
@@ -203,6 +205,7 @@ const StudentBluetoothScanScreen = () => {
             try {
               navigation.navigate('CameraScreen', {
                 first: false,
+                photoUrl: updatedUser.photoUrl,
                 onPhotoVerified: async isVerified => {
                   if (isVerified) {
                     try {
@@ -228,10 +231,6 @@ const StudentBluetoothScanScreen = () => {
                       setDeviceFound(false);
                     }
                   } else {
-                    Alert.alert(
-                      'Verification Failed',
-                      'Photo did not match our records.',
-                    );
                     setDeviceFound(false);
                   }
                 },
