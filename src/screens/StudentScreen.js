@@ -1,6 +1,7 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable react/no-unstable-nested-components */
 /* eslint-disable react-native/no-inline-styles */
-import React from 'react';
+import React, {useEffect} from 'react';
 import {
   View,
   Text,
@@ -55,6 +56,37 @@ const StudentScreen = ({navigation}) => {
     Alert.alert(`${operation} Error`, error.message);
     console.log(`${operation} error:`, error);
   };
+
+  useEffect(() => {
+    if(!user.photoUrl){
+      Alert.alert(
+                  'No Photo Found',
+                  'Please upload your profile picture for attendance verification',
+                  [
+                    {
+                      text: 'Logout',
+                      style: 'destructive',
+                      onPress: async () => {
+                        try {
+                          await signOutUser();
+                          navigation.reset({
+                            index: 0,
+                            routes: [{ name: 'Login' }],
+                          });
+                        } catch (error) {
+                          handleAuthError('Logout', error);
+                        }
+                      },
+                    },
+                    {
+                      text: 'OK',
+                      onPress: () => navigation.replace('CameraScreen', { first: true }),
+                    },
+                  ],
+                  { cancelable: false } // User must press OK
+                );
+    }
+  },[]);
 
   const SectionButton = ({image, title, onPress, color}) => (
     <TouchableOpacity
