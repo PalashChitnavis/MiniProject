@@ -647,53 +647,75 @@ export const upsertClassesTeacher = async (teacherCode, classCode) => {
   }
 };
 
-export const addStudentToClass = async (
-  classCode,
-  teacherCode,
-  studentEmail,
-) => {
+export const addStudentToClass = async (classCode, teacherCode, studentEmail) => {
   try {
     // Validate inputs
     if (!classCode || !teacherCode || !studentEmail) {
       throw new Error('classCode, teacherCode, and studentEmail are required');
+    }
+    if (
+      typeof classCode !== 'string' ||
+      typeof teacherCode !== 'string' ||
+      typeof studentEmail !== 'string'
+    ) {
+      throw new Error('Inputs must be strings');
+    }
+    if (/[\/#.$\[\]]/.test(classCode) || /[\/#.$\[\]]/.test(teacherCode)) {
+      throw new Error('Codes cannot contain /, #, ., $, [, or ]');
     }
 
     const classesRef = firestore()
       .collection('classes')
       .doc(`${classCode}_${teacherCode}`);
 
-    // Use a transaction to ensure consistency
-    await firestore().runTransaction(async transaction => {
-      const docSnapshot = await transaction.get(classesRef);
+    // Retry transaction up to 3 times
+    let attempts = 0;
+    const maxAttempts = 3;
 
-      // Check if the document exists
-      if (!docSnapshot.exists) {
-        throw new Error(
-          `Class ${classCode} with teacher ${teacherCode} does not exist`,
-        );
-      }
+    while (attempts < maxAttempts) {
+      try {
+        await firestore().runTransaction(async transaction => {
+          const docSnapshot = await transaction.get(classesRef);
 
-      const classData = docSnapshot.data();
-      const students = classData.students || [];
+          if (!docSnapshot.exists) {
+            throw new Error(
+              `Class ${classCode} with teacher ${teacherCode} does not exist`,
+            );
+          }
 
-      // Check if student is already enrolled
-      if (students.includes(studentEmail)) {
+          const classData = docSnapshot.data();
+          let students = Array.isArray(classData.students) ? classData.students : [];
+
+          if (students.includes(studentEmail)) {
+            console.log(
+              `Student ${studentEmail} is already enrolled in ${classCode}`,
+            );
+            return;
+          }
+
+          transaction.update(classesRef, {
+            students: firestore.FieldValue.arrayUnion(studentEmail),
+          });
+        });
+
         console.log(
-          `Student ${studentEmail} is already enrolled in ${classCode}`,
+          `Student ${studentEmail} added to class ${classCode} successfully`,
         );
-        return; // No update needed
+        return true;
+      } catch (error) {
+        attempts++;
+        if (
+          error.message.includes('does not exist') ||
+          attempts >= maxAttempts
+        ) {
+          throw error;
+        }
+        // Wait before retrying
+        await new Promise(resolve => setTimeout(resolve, 500));
       }
+    }
 
-      // Add student to the array
-      transaction.update(classesRef, {
-        students: firestore.FieldValue.arrayUnion(studentEmail),
-      });
-    });
-
-    console.log(
-      `Student ${studentEmail} added to class ${classCode} successfully`,
-    );
-    return true; // Consistent success indicator
+    throw new Error('Failed to add student after multiple attempts');
   } catch (error) {
     console.error('Error adding student to class:', error.message);
     throw error;

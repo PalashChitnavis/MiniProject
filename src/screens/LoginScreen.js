@@ -10,9 +10,9 @@ import {
   Modal,
 } from 'react-native';
 import {googleLogin, signOutUser} from '../services/FirebaseService';
-import { useAuth } from '../contexts/AuthContext';
-import { useNavigation } from '@react-navigation/native';
-import { addStudentToClass, createUser, getUser } from '../services/DatabaseService';
+import {useAuth} from '../contexts/AuthContext';
+import {useNavigation} from '@react-navigation/native';
+import {addStudentToClass, createUser, getUser} from '../services/DatabaseService';
 
 const LoginScreen = () => {
   const {storeUser} = useAuth();
@@ -25,155 +25,170 @@ const LoginScreen = () => {
     message: '',
   });
 
+  // Prevent multiple simultaneous async operations
+  const [isProcessing, setIsProcessing] = useState(false);
+
   const handleLogin = async () => {
+    if (isProcessing) {return;}
+    setIsProcessing(true);
     try {
       setLoading(true);
       const dbuser = await googleLogin();
+      if (!dbuser || !dbuser.email || !dbuser.type) {
+        throw new Error('Invalid user data received');
+      }
       await storeUser(dbuser);
-      console.log(dbuser);
 
       if (dbuser.type === 'student') {
         if (!dbuser.photoUrl) {
-          Alert.alert(
-            'First Time User',
-            'As a first time user, please upload your profile picture for attendance verification',
-            [
-              {
-                text: 'Cancel',
-                style: 'destructive',
-                onPress: async () => {
-                  try {
-                    await signOutUser();
-                    navigation.reset({
-                      index: 0,
-                      routes: [{ name: 'Login' }],
-                    });
-                  } catch (error) {
-                    handleAuthError('Logout', error);
-                  }
-                },
-              },
-              {
-                text: 'OK',
-                onPress: () => navigation.replace('CameraScreen', { first: true }),
-              },
-            ],
-            { cancelable: false } // User must press OK
-          );
-          setLoading(false);
-          return; // Important: exit the function here
+          showFirstTimeAlert();
+          return;
         }
         navigation.replace('Student');
-      } else {
+      } else if (dbuser.type === 'teacher') {
         navigation.replace('Teacher');
+      } else {
+        throw new Error('Invalid user type');
       }
       setIsLoggedIn(true);
-      setLoading(false);
     } catch (error) {
       handleAuthError('Login', error);
+    } finally {
+      setLoading(false);
+      setIsProcessing(false);
     }
   };
 
-
   const handleLogout = async () => {
+    if (isProcessing) {return;}
+    setIsProcessing(true);
     try {
       setLoading(true);
       await signOutUser();
-      navigation.replace('Login');
+      navigation.reset({
+        index: 0,
+        routes: [{name: 'Login'}],
+      });
       handleLogoutSuccess();
     } catch (error) {
       handleAuthError('Logout', error);
+    } finally {
+      setLoading(false);
+      setIsProcessing(false);
     }
   };
 
   const handleLogoutSuccess = () => {
     setIsLoggedIn(false);
     Alert.alert('Logged out', 'You have been successfully logged out');
-    setLoading(false);
   };
 
   const handleAuthError = (operation, error) => {
-    setLoading(false);
+    const errorMessage = error.message || 'An unexpected error occurred';
     console.log(`${operation} error:`, error);
-
     setErrorModal({
       visible: true,
-      operation: operation,
-      message: error.message || 'Something went wrong',
+      operation,
+      message: errorMessage,
     });
   };
 
+  const showFirstTimeAlert = () => {
+    Alert.alert(
+      'First Time User',
+      'As a first time user, please upload your profile picture for attendance verification',
+      [
+        {
+          text: 'Cancel',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await signOutUser();
+              navigation.reset({
+                index: 0,
+                routes: [{name: 'Login'}],
+              });
+              setIsLoggedIn(false);
+            } catch (error) {
+              handleAuthError('Logout', error);
+            }
+          },
+        },
+        {
+          text: 'OK',
+          onPress: () => navigation.replace('CameraScreen', {first: true}),
+        },
+      ],
+      {cancelable: false}
+    );
+  };
+
   const handleTestStudent = async () => {
+    if (isProcessing) {return;}
+    setIsProcessing(true);
     try {
+      setLoading(true);
       const rand = generate5DigitNumber();
+      const email = `test_student_${rand}@iiitm.ac.in`;
+      // Check if user already exists
+      const existingUser = await getUser(email);
+      if (existingUser) {
+        throw new Error('Test student already exists');
+      }
+
       const dbuser = {
         batch: '2022',
-        classes: [{
-          teacherCode: 'TT',
-          classCode: 'TEST_CLASS',
-        }],
+        classes: [
+          {
+            teacherCode: 'TT',
+            classCode: 'TEST_CLASS',
+          },
+        ],
         course: 'imt',
-        email: `test_student_${rand}@iiitm.ac.in`,
+        email,
         name: `Test Student ${rand}`,
         type: 'student',
         rollNumber: `${rand}`,
       };
-      setLoading(true);
+
       await createUser(dbuser);
       await storeUser(dbuser);
-      await addStudentToClass('TEST_CLASS', 'TT', dbuser.email);
+      await addStudentToClass('TEST_CLASS', 'TT', dbuser.email).catch(error => {
+        throw new Error(`Failed to add student to class: ${error.message}`);
+      });
+
       if (!dbuser.photoUrl) {
-        // Use Alert with buttons that handle navigation
-        Alert.alert(
-          'First Time User',
-          'As a first time user, please upload your profile picture for attendance verification',
-          [
-            {
-              text: 'Cancel',
-              style: 'destructive',
-              onPress: async () => {
-                try {
-                  await signOutUser();
-                  navigation.reset({
-                    index: 0,
-                    routes: [{ name: 'Login' }],
-                  });
-                } catch (error) {
-                  handleAuthError('Logout', error);
-                }
-              },
-            },
-            {
-              text: 'OK',
-              onPress: () => navigation.replace('CameraScreen', { first: true }),
-            },
-          ],
-          { cancelable: false } // User must press OK
-        );
-        setLoading(false);
-        return; // Important: exit the function here
+        showFirstTimeAlert();
+        return;
       }
       navigation.replace('Student');
       setIsLoggedIn(true);
-      setLoading(false);
     } catch (error) {
-      handleAuthError('Login', error);
+      handleAuthError('Test Student Login', error);
+    } finally {
+      setLoading(false);
+      setIsProcessing(false);
     }
-    console.log('Testing as student');
   };
 
   const handleTestTeacher = async () => {
+    if (isProcessing) {return;}
+    setIsProcessing(true);
     try {
       setLoading(true);
       const dbuser = await getUser('test_teacher@iiitm.ac.in');
+      if (!dbuser || !dbuser.email || dbuser.type !== 'teacher') {
+        throw new Error('Invalid teacher data');
+      }
       await storeUser(dbuser);
       navigation.replace('Teacher');
       setIsLoggedIn(true);
-      setLoading(false);
     } catch (error) {
-      handleAuthError('Login', error);
+      handleAuthError('Test Teacher Login', error);
+    } finally {
+      setLoading(false);
+      setIsProcessing(false);
     }
-    console.log('Testing as teacher');
   };
 
   function generate5DigitNumber() {
@@ -185,6 +200,7 @@ const LoginScreen = () => {
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#0000ff" />
+          <Text style={styles.loadingText}>Loading...</Text>
         </View>
       </SafeAreaView>
     );
@@ -199,29 +215,34 @@ const LoginScreen = () => {
           <>
             <Pressable
               style={[styles.button, styles.logoutButton]}
-              onPress={handleLogout}>
+              onPress={handleLogout}
+              disabled={isProcessing}>
               <Text style={styles.logoutButtonText}>Logout</Text>
             </Pressable>
             <Text style={styles.note}>You are already logged in</Text>
           </>
         ) : (
           <>
-            <Pressable style={styles.button} onPress={handleLogin}>
+            <Pressable
+              style={styles.button}
+              onPress={handleLogin}
+              disabled={isProcessing}>
               <Text style={styles.buttonText}>Login with Google</Text>
             </Pressable>
             <Text style={styles.note}>Use your @iiitm.ac.in account</Text>
 
-            {/* Test Buttons Container */}
             <View style={styles.testButtonsContainer}>
               <Pressable
                 style={[styles.button, styles.testStudentButton]}
-                onPress={handleTestStudent}>
+                onPress={handleTestStudent}
+                disabled={isProcessing}>
                 <Text style={styles.testButtonText}>Test as Student</Text>
               </Pressable>
 
               <Pressable
                 style={[styles.button, styles.testTeacherButton]}
-                onPress={handleTestTeacher}>
+                onPress={handleTestTeacher}
+                disabled={isProcessing}>
                 <Text style={styles.testButtonText}>Test as Teacher</Text>
               </Pressable>
             </View>
@@ -229,29 +250,29 @@ const LoginScreen = () => {
         )}
       </View>
       <Modal
-  visible={errorModal.visible}
-  transparent={true}
-  animationType="fade"
-  onRequestClose={() => {}} // Makes it non-cancellable by back button
->
-  <View style={styles.modalOverlay}>
-    <View style={styles.modalContainer}>
-      <Text style={styles.modalTitle}>{errorModal.operation} Error</Text>
-      <Pressable
-        style={styles.modalButton}
-        onPress={() => {
-          setErrorModal({...errorModal, visible: false});
-          navigation.reset({
-            index: 0,
-            routes: [{ name: 'Login' }],
-          });
-        }}
-      >
-        <Text style={styles.modalButtonText}>Return to Login</Text>
-      </Pressable>
-    </View>
-  </View>
-</Modal>
+        visible={errorModal.visible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => {}}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalTitle}>{errorModal.operation} Error</Text>
+            <Text style={styles.modalText}>{errorModal.message}</Text>
+            <Pressable
+              style={styles.modalButton}
+              onPress={() => {
+                setErrorModal({...errorModal, visible: false});
+                navigation.reset({
+                  index: 0,
+                  routes: [{name: 'Login'}],
+                });
+                setIsLoggedIn(false);
+              }}>
+              <Text style={styles.modalButtonText}>Return to Login</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -272,6 +293,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#333',
+  },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
@@ -285,7 +311,7 @@ const styles = StyleSheet.create({
     width: '80%',
     alignItems: 'center',
     justifyContent: 'center',
-    elevation: 3,
+    elevation: 10,
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.1,

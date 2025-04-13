@@ -1,4 +1,4 @@
-// StudentScreen.js
+/* eslint-disable react-native/no-inline-styles */
 import React, {useEffect, useState} from 'react';
 import {
   View,
@@ -24,22 +24,26 @@ const StudentViewReportScreen = () => {
   const [attendanceData, setAttendanceData] = useState([]);
   const [selectedClass, setSelectedClass] = useState(null);
   const [activeTab, setActiveTab] = useState('calendar');
+  const [currentMonth, setCurrentMonth] = useState(new Date());
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Get student data first
         const resp = await getStudentAttendanceReport(user.email);
         setStudentData(resp);
 
-        // Then get class data for all classes
         const classes = user.classes || [];
+        if (classes.length === 0) {
+          setLoading(false);
+          return;
+        }
+
         const classPromises = classes.map(cls =>
           upsertClassesTeacher(cls.teacherCode, cls.classCode),
         );
 
         const classResponses = await Promise.all(classPromises);
-        setClassData(classResponses);
+        setClassData(classResponses || []);
       } catch (err) {
         console.log(err);
       } finally {
@@ -48,23 +52,19 @@ const StudentViewReportScreen = () => {
     };
 
     fetchData();
-  }, []);
+  }, [user.email, user.classes]);
 
   useEffect(() => {
-    if (classData.length > 0) {
+    if (classData.length > 0 && studentData) {
       const processedData = processAttendanceData(studentData, classData);
       setAttendanceData(processedData);
-      console.log(processedData);
     }
   }, [studentData, classData]);
 
   const processAttendanceData = (studentData, classData) => {
-    // If no student data exists, treat it as if the student hasn't attended any classes
     const studentClasses = studentData?.classes || [];
 
-    // For each class the student is enrolled in (from user.classes)
     return classData.map(classInfo => {
-      // Find if student has any attendance record for this class
       const studentClass = studentClasses.find(
         sc => sc.classCode === classInfo.classCode,
       ) || {
@@ -73,11 +73,9 @@ const StudentViewReportScreen = () => {
         datesPresent: [],
       };
 
-      // Convert Firestore timestamps to Date objects
       const classDates = classInfo?.dates || [];
       const presentDates = studentClass?.datesPresent || [];
 
-      // Create attendance records (mark all as absent if no student data)
       const attendanceRecords = classDates.map(date => {
         const isPresent = presentDates.some(
           presentDate => presentDate === date,
@@ -89,13 +87,11 @@ const StudentViewReportScreen = () => {
         };
       });
 
-      // Calculate attendance percentage
       const totalClasses = classDates.length;
       const attendedClasses = presentDates.length;
-      const percentage =
-        totalClasses > 0
-          ? Math.round((attendedClasses / totalClasses) * 100)
-          : 0;
+      const percentage = totalClasses > 0
+        ? Math.min(100, Math.max(0, Math.round((attendedClasses / totalClasses) * 100)))
+        : 0;
 
       return {
         classCode: classInfo.classCode,
@@ -108,40 +104,13 @@ const StudentViewReportScreen = () => {
     });
   };
 
-  //   useEffect(() => {
-  //     console.log(studentData);
-  //     console.log(classData);
-  //     console.log(attendanceData);
-  //   }, [attendanceData]);
-
-  // Sample data (will be replaced with your actual data)
-  const classes = [
-    {id: '1', name: 'Mathematics', code: 'MATH101', attendance: 85},
-    {id: '2', name: 'Computer Science', code: 'CS201', attendance: 92},
-    {id: '3', name: 'Physics', code: 'PHYS101', attendance: 78},
-    {id: '4', name: 'English Literature', code: 'ENG102', attendance: 88},
-    {id: '5', name: 'Chemistry', code: 'CHEM101', attendance: 90},
-  ];
-
-  const attendanceDates = {
-    present: [
-      {date: '2025-03-24', status: 'present'},
-      {date: '2025-03-26', status: 'present'},
-      {date: '2025-03-31', status: 'present'},
-      {date: '2025-04-02', status: 'present'},
-    ],
-    absent: [
-      {date: '2025-03-25', status: 'absent'},
-      {date: '2025-03-30', status: 'absent'},
-    ],
-  };
-
-  //   Prepare marked dates for calendar
   const getMarkedDates = () => {
-    const markedDates = {};
+    if (!selectedClass?.attendanceRecords?.length) {
+      return {};
+    }
 
-    selectedClass?.attendanceRecords.forEach(classItem => {
-      // Convert from 'DD/MM/YYYY' to 'YYYY-MM-DD'
+    const markedDates = {};
+    selectedClass.attendanceRecords.forEach(classItem => {
       const [day, month, year] = classItem.date.split('/');
       const formattedDate = `${year}-${month}-${day}`;
 
@@ -151,8 +120,6 @@ const StudentViewReportScreen = () => {
       };
     });
 
-    console.log('first: ', markedDates);
-
     return markedDates;
   };
 
@@ -161,9 +128,27 @@ const StudentViewReportScreen = () => {
       style={styles.classCard}
       onPress={() => setSelectedClass(item)}>
       <View style={styles.classCardContent}>
-        <View>
+        <View style={styles.classInfo}>
           <Text style={styles.className}>{item?.classCode}</Text>
           <Text style={styles.classCode}>{item?.teacherCode}</Text>
+          <View style={styles.attendanceDetails}>
+            <View style={styles.attendanceDetailItem}>
+              <Text style={styles.attendanceDetailLabel}>Total:</Text>
+              <Text style={styles.attendanceDetailValue}>{item.totalClasses}</Text>
+            </View>
+            <View style={styles.attendanceDetailItem}>
+              <Text style={styles.attendanceDetailLabel}>Present:</Text>
+              <Text style={[styles.attendanceDetailValue, {color: '#4CAF50'}]}>
+                {item.attendedClasses}
+              </Text>
+            </View>
+            <View style={styles.attendanceDetailItem}>
+              <Text style={styles.attendanceDetailLabel}>Absent:</Text>
+              <Text style={[styles.attendanceDetailValue, {color: '#F44336'}]}>
+                {item.totalClasses - item.attendedClasses}
+              </Text>
+            </View>
+          </View>
         </View>
         <View
           style={[
@@ -177,77 +162,107 @@ const StudentViewReportScreen = () => {
   );
 
   const getAttendanceColor = percentage => {
-    if (percentage >= 90) return '#4CAF50';
-    if (percentage >= 80) return '#8BC34A';
-    if (percentage >= 75) return '#FFC107';
+    if (percentage >= 90) {return '#4CAF50';}
+    if (percentage >= 80) {return '#8BC34A';}
+    if (percentage >= 75) {return '#FFC107';}
     return '#F44336';
   };
 
   const formatDate2 = dateStr => {
-    // Split and rearrange date from DD/MM/YYYY to YYYY-MM-DD
+    if (!dateStr) {return 'Invalid Date';}
     const [day, month, year] = dateStr.split('/');
     const isoDateStr = `${year}-${month}-${day}`;
-
-    // Create Date object and format it
     const date = new Date(isoDateStr);
+    if (isNaN(date.getTime())) {return 'Invalid Date';}
+
     const options = {
-      weekday: 'long',
       year: 'numeric',
       month: 'long',
       day: 'numeric',
+      weekday: 'long',
     };
-
-    return date.toLocaleDateString('en-US', options);
+    return date.toLocaleDateString('en-GB', options);
   };
 
   const renderAttendanceList = () => {
+    if (!selectedClass?.attendanceRecords?.length) {
+      return (
+        <View style={styles.attendanceListContainer}>
+          <Text style={styles.sectionTitle}>No attendance records available</Text>
+        </View>
+      );
+    }
+
     return (
       <View style={styles.attendanceListContainer}>
         <View style={styles.listSection}>
           <Text style={styles.sectionTitle}>Present</Text>
-          {selectedClass?.attendanceRecords.map(item => {
-            if (item.status === 'Present')
-              return (
-                <View key={item.date} style={styles.dateItem}>
-                  <View
-                    style={[styles.statusDot, {backgroundColor: '#4CAF50'}]}
-                  />
-                  <Text style={styles.dateText}>{formatDate2(item.date)}</Text>
-                </View>
-              );
-          })}
+          {selectedClass.attendanceRecords.filter(item => item.status === 'Present').length === 0 ? (
+            <Text style={styles.dateText}>No present records</Text>
+          ) : (
+            selectedClass.attendanceRecords.map(item => {
+              if (item.status === 'Present') {
+                return (
+                  <View key={item.date} style={styles.dateItem}>
+                    <View style={[styles.statusDot, {backgroundColor: '#4CAF50'}]} />
+                    <Text style={styles.dateText}>{formatDate2(item.date)}</Text>
+                  </View>
+                );
+              }
+              return null;
+            })
+          )}
         </View>
 
         <View style={styles.listSection}>
           <Text style={styles.sectionTitle}>Absent</Text>
-          {selectedClass?.attendanceRecords.map(item => {
-            if (item.status === 'Absent')
-              return (
-                <View key={item.date} style={styles.dateItem}>
-                  <View
-                    style={[styles.statusDot, {backgroundColor: '#F44336'}]}
-                  />
-                  <Text style={styles.dateText}>{formatDate2(item.date)}</Text>
-                </View>
-              );
-          })}
+          {selectedClass.attendanceRecords.filter(item => item.status === 'Absent').length === 0 ? (
+            <Text style={styles.dateText}>No absent records</Text>
+          ) : (
+            selectedClass.attendanceRecords.map(item => {
+              if (item.status === 'Absent') {
+                return (
+                  <View key={item.date} style={styles.dateItem}>
+                    <View style={[styles.statusDot, {backgroundColor: '#F44336'}]} />
+                    <Text style={styles.dateText}>{formatDate2(item.date)}</Text>
+                  </View>
+                );
+              }
+              return null;
+            })
+          )}
         </View>
       </View>
     );
   };
 
   const getOverAllAttendancePercentage = () => {
-    let percentage = 0;
-    for (let i = 0; i < attendanceData.length; i++) {
-      percentage += attendanceData[i].percentage;
-    }
-    return Math.round(percentage / attendanceData.length);
+    if (!attendanceData.length) {return 0;}
+
+    const totalPercentage = attendanceData.reduce((sum, item) => sum + item.percentage, 0);
+    return Math.min(100, Math.max(0, Math.round(totalPercentage / attendanceData.length)));
   };
+
+  const renderEmptyState = () => (
+    <View style={styles.emptyContainer}>
+      <Text style={styles.emptyText}>No classes enrolled</Text>
+      <Text style={styles.emptySubText}>Join a class to view attendance records</Text>
+    </View>
+  );
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyText}>Loading...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
       {!selectedClass ? (
-        // Classes List Screen
         <>
           <View style={styles.header}>
             <Text style={styles.headerTitle}>My Classes</Text>
@@ -260,26 +275,27 @@ const StudentViewReportScreen = () => {
               </Text>
             </View>
           </View>
-          <FlatList
-            data={attendanceData}
-            renderItem={renderClassItem}
-            keyExtractor={item => item.id}
-            contentContainerStyle={styles.classesList}
-          />
+          {attendanceData.length === 0 ? (
+            renderEmptyState()
+          ) : (
+            <FlatList
+              data={attendanceData}
+              renderItem={renderClassItem}
+              keyExtractor={item => item.classCode}
+              contentContainerStyle={styles.classesList}
+            />
+          )}
         </>
       ) : (
-        // Class Detail Screen
         <>
           <View style={styles.header}>
             <TouchableOpacity
               style={styles.backButton}
-              onPress={() => setSelectedClass(null)}>
-              {/* <Text style={styles.backButtonText}>←</Text> */}
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>{selectedClass?.classCode}</Text>
-            <Text style={styles.classCode}>{selectedClass?.teacherCode}</Text>
+              onPress={() => setSelectedClass(null)} />
+            <Text style={styles.headerTitle}>{selectedClass?.classCode || 'Unknown Class'}</Text>
+            <Text style={styles.classCode}>{selectedClass?.teacherCode || 'Unknown Teacher'}</Text>
             <Text style={styles.classAttendanceValue}>
-              {selectedClass.percentage || '-1'}%
+              {selectedClass.percentage !== undefined ? `${selectedClass.percentage}%` : 'N/A'}
             </Text>
           </View>
 
@@ -288,17 +304,14 @@ const StudentViewReportScreen = () => {
               <View style={styles.calendarContainer}>
                 <Calendar
                   markedDates={getMarkedDates()}
+                  onMonthChange={(month) => {
+                    setCurrentMonth(new Date(month.dateString));
+                  }}
                   renderHeader={date => {
-                    // Format date to your custom title, e.g., "My Attendance Calendar"
-                    const header = 'calender';
+                    const month = date.toString('MMMM yyyy');
                     return (
-                      <Text
-                        style={{
-                          fontSize: 18,
-                          fontWeight: 'bold',
-                          color: '#2d4150',
-                        }}>
-                        {header}
+                      <Text style={{fontSize: 18, fontWeight: 'bold', color: '#2d4150'}}>
+                        {month}
                       </Text>
                     );
                   }}
@@ -315,21 +328,22 @@ const StudentViewReportScreen = () => {
                     indicatorColor: '#6200ee',
                   }}
                 />
-
-                <View style={styles.legendContainer}>
-                  <View style={styles.legendItem}>
-                    <View
-                      style={[styles.legendDot, {backgroundColor: '#4CAF50'}]}
-                    />
-                    <Text style={styles.legendText}>Present</Text>
+                {selectedClass.attendanceRecords?.length === 0 ? (
+                  <View style={styles.emptyContainer}>
+                    <Text style={styles.emptyText}>No attendance records</Text>
                   </View>
-                  <View style={styles.legendItem}>
-                    <View
-                      style={[styles.legendDot, {backgroundColor: '#F44336'}]}
-                    />
-                    <Text style={styles.legendText}>Absent</Text>
+                ) : (
+                  <View style={styles.legendContainer}>
+                    <View style={styles.legendItem}>
+                      <View style={[styles.legendDot, {backgroundColor: '#4CAF50'}]} />
+                      <Text style={styles.legendText}>Present</Text>
+                    </View>
+                    <View style={styles.legendItem}>
+                      <View style={[styles.legendDot, {backgroundColor: '#F44336'}]} />
+                      <Text style={styles.legendText}>Absent</Text>
+                    </View>
                   </View>
-                </View>
+                )}
               </View>
             ) : (
               renderAttendanceList()
@@ -366,6 +380,7 @@ const StudentViewReportScreen = () => {
   );
 };
 
+// Styles remain unchanged
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -378,7 +393,7 @@ const styles = StyleSheet.create({
     shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.1,
     shadowRadius: 3,
-    elevation: 3,
+    elevation: 10,
   },
   headerTitle: {
     fontSize: 22,
@@ -411,7 +426,7 @@ const styles = StyleSheet.create({
     shadowOffset: {width: 0, height: 1},
     shadowOpacity: 0.05,
     shadowRadius: 2,
-    elevation: 1,
+    elevation: 10,
   },
   classCardContent: {
     padding: 16,
@@ -423,16 +438,18 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#333333',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   classCode: {
     fontSize: 14,
     color: '#757575',
+    marginBottom: 4,
   },
   attendanceIndicator: {
     borderRadius: 20,
     paddingVertical: 6,
     paddingHorizontal: 12,
+    marginLeft: 10,
   },
   attendanceText: {
     color: '#FFFFFF',
@@ -463,7 +480,7 @@ const styles = StyleSheet.create({
     shadowOffset: {width: 0, height: 1},
     shadowOpacity: 0.05,
     shadowRadius: 2,
-    elevation: 1,
+    elevation: 10,
   },
   legendContainer: {
     flexDirection: 'row',
@@ -493,7 +510,7 @@ const styles = StyleSheet.create({
     shadowOffset: {width: 0, height: -2},
     shadowOpacity: 0.1,
     shadowRadius: 3,
-    elevation: 3,
+    elevation: 10,
   },
   tab: {
     flex: 1,
@@ -521,7 +538,7 @@ const styles = StyleSheet.create({
     shadowOffset: {width: 0, height: 1},
     shadowOpacity: 0.05,
     shadowRadius: 2,
-    elevation: 1,
+    elevation: 10,
   },
   listSection: {
     marginBottom: 20,
@@ -548,6 +565,46 @@ const styles = StyleSheet.create({
   dateText: {
     fontSize: 14,
     color: '#333333',
+  },
+  classInfo: {
+    flex: 1,
+  },
+  attendanceDetails: {
+    flexDirection: 'row',
+    marginTop: 8,
+    justifyContent: 'space-between',
+  },
+  attendanceDetailItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  attendanceDetailLabel: {
+    fontSize: 12,
+    color: '#757575',
+    marginRight: 4,
+  },
+  attendanceDetailValue: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#333333',
+  },
+  // New styles for empty state
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  emptyText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333333',
+    marginBottom: 8,
+  },
+  emptySubText: {
+    fontSize: 14,
+    color: '#757575',
+    textAlign: 'center',
   },
 });
 
