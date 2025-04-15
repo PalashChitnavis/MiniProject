@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import {signOutUser} from '../services/FirebaseService';
 import {useAuth} from '../contexts/AuthContext';
+import { getUser } from '../services/DatabaseService';
 
 const {width} = Dimensions.get('window');
 const BUTTON_WIDTH = width * 0.42; // Adjusted for grid
@@ -57,8 +58,19 @@ const StudentScreen = ({navigation}) => {
     console.log(`${operation} error:`, error);
   };
 
-  useEffect(() => {
-    if(!user.photoUrl){
+  const getUserData = async () => {
+    try {
+      const userData = await getUser(user.email);
+      return userData;
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+      return null;
+    }
+  };
+
+  useEffect(async () => {
+    const dbUser = await getUserData();
+    if(!dbUser.photoUrl){
       Alert.alert(
                   'No Photo Found',
                   'Please upload your profile picture for attendance verification',
