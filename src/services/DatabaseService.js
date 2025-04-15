@@ -96,6 +96,7 @@ export const getUser = async email => {
     }
 
     console.log(`User fetched successfully for emailKey: ${emailKey}`);
+    console.log(userData);
     return {id: emailKey, ...userData}; // Return data with ID
   } catch (error) {
     console.error('Error fetching user:', error.message);
@@ -138,11 +139,24 @@ export const getTeacherEmailFromCode = async teacherCode => {
 
 export const updateUser = async user => {
   try {
+    // Validate input
+    if (!user || !user.email) {
+      throw new Error('Invalid user object: email is required');
+    }
+
     const emailKey = user.email.replace(/[@.]/g, '_');
     const userRef = firestore().collection('users').doc(emailKey);
 
-    // This will completely replace the existing document with the new user object
-    await userRef.set(user);
+    // Check if the document exists
+    const docSnapshot = await userRef.get();
+    
+    if (docSnapshot.exists) {
+      // Update only the provided fields
+      await userRef.update(user);
+    } else {
+      // If the document doesn't exist, create it with the provided fields
+      await userRef.set(user, { merge: true });
+    }
 
     console.log('User updated successfully');
     return userRef;
