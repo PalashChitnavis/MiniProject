@@ -68,37 +68,46 @@ const StudentScreen = ({navigation}) => {
     }
   };
 
-  useEffect(async () => {
-    const dbUser = await getUserData();
-    if(!dbUser.photoUrl){
-      Alert.alert(
-                  'No Photo Found',
-                  'Please upload your profile picture for attendance verification',
-                  [
-                    {
-                      text: 'Logout',
-                      style: 'destructive',
-                      onPress: async () => {
-                        try {
-                          await signOutUser();
-                          navigation.reset({
-                            index: 0,
-                            routes: [{ name: 'Login' }],
-                          });
-                        } catch (error) {
-                          handleAuthError('Logout', error);
-                        }
-                      },
-                    },
-                    {
-                      text: 'OK',
-                      onPress: () => navigation.replace('CameraScreen', { first: true }),
-                    },
-                  ],
-                  { cancelable: false } // User must press OK
-                );
+  useEffect(() => {
+    async function checkUserData() {
+      try {
+        const dbUser = await getUserData();
+        if (!dbUser?.photoUrl) {
+          Alert.alert(
+            'No Photo Found',
+            'Please upload your profile picture for attendance verification',
+            [
+              {
+                text: 'Logout',
+                style: 'destructive',
+                onPress: async () => {
+                  try {
+                    await signOutUser();
+                    navigation.reset({
+                      index: 0,
+                      routes: [{ name: 'Login' }],
+                    });
+                  } catch (error) {
+                    handleAuthError('Logout', error);
+                  }
+                },
+              },
+              {
+                text: 'OK',
+                onPress: () => navigation.replace('CameraScreen', { first: true }),
+              },
+            ],
+            { cancelable: false }
+          );
+        }
+      } catch (error) {
+        console.error('Error in checkUserData:', error);
+        Alert.alert('Error', 'Failed to verify user data. Please try again.');
+      }
     }
-  },[]);
+
+    checkUserData();
+  }, [navigation]);
 
   const SectionButton = ({image, title, onPress, color}) => (
     <TouchableOpacity
