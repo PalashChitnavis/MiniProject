@@ -1,97 +1,95 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+# 📲 Proximity-Based Attendance System Using Bluetooth Low Energy (BLE)
 
-# Getting Started
+A mobile application that uses **Bluetooth Low Energy (BLE)** and **Facial Recognition** to enable secure, contactless, and real-time attendance marking. Designed with students and teachers in mind, this app ensures integrity in classroom attendance by eliminating the possibilities of proxy and misuse.
 
-> **Note**: Make sure you have completed the [Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment) guide before proceeding.
+---
 
-## Step 1: Start Metro
+## 🚀 Features
 
-First, you will need to run **Metro**, the JavaScript build tool for React Native.
+- **👨‍🏫 Dual User Roles**  
+  Teachers can create and manage classes, while students can join classes using a unique class code and mark attendance.
 
-To start the Metro dev server, run the following command from the root of your React Native project:
+- **📍 BLE-Based Proximity Detection**  
+  Uses BLE scanning and RSSI (signal strength) to ensure students are physically present in the classroom before marking attendance.
 
-```sh
-# Using npm
-npm start
+- **🔒 Face Recognition Authentication**  
+  Uses AWS Rekognition to verify student identity during login, preventing proxy attendance through phone or credentials misuse.
 
-# OR using Yarn
-yarn start
-```
+- **🧾 Verified Registration**  
+  Only teachers can register students. Each student's face and MAC ID are recorded and stored for future verification.
 
-## Step 2: Build and run your app
+- **🕒 Real-Time Attendance**  
+  Teachers detect nearby students via Bluetooth, and attendance is marked only if both BLE and MAC ID match.
 
-With Metro running, open a new terminal window/pane from the root of your React Native project, and use one of the following commands to build and run your Android or iOS app:
+- **🗃 Firebase Integration**  
+  Uses Firebase for real-time database syncing and secure authentication.
 
-### Android
+- **📱 Cross-Platform App**  
+  Developed using React Native for compatibility with both Android and iOS.
 
-```sh
-# Using npm
-npm run android
+---
 
-# OR using Yarn
-yarn android
-```
+## 🧠 Tech Stack
 
-### iOS
+| Technology      | Purpose                          |
+|-----------------|----------------------------------|
+| React Native    | Frontend Mobile Development      |
+| Firebase        | Authentication & Realtime DB     |
+| AWS Rekognition | Face Comparison and Matching     |
+| BLE Module      | Device Proximity Verification    |
 
-For iOS, remember to install CocoaPods dependencies (this only needs to be run on first clone or after updating native deps).
+---
 
-The first time you create a new project, run the Ruby bundler to install CocoaPods itself:
+## 🏗️ System Architecture
 
-```sh
-bundle install
-```
+The system consists of:
 
-Then, and every time you update your native dependencies, run:
+- A mobile app for Students and Teachers  
+- Firebase backend services (Authentication, Database)  
+- AWS for facial recognition  
+- BLE scanning to verify physical proximity  
+- MAC ID mapping for device-level validation
 
-```sh
-bundle exec pod install
-```
 
-For more information, please visit [CocoaPods Getting Started guide](https://guides.cocoapods.org/using/getting-started.html).
+---
 
-```sh
-# Using npm
-npm run ios
+## 📈 Future Scope
 
-# OR using Yarn
-yarn ios
-```
+- Integrate **Geolocation APIs** to supplement BLE for nearby but out-of-range students  
+- Add **Random Roll Call Verification** to reduce proxy attempts  
+- Build a **custom ML model** for faster, offline facial recognition  
+- Use **SQL/PostgreSQL** for optimized data handling and faster queries  
+- Add **notification system** for anomalies like duplicate logins or suspicious behavior  
+- Explore **NFC-based scanning** for even faster proximity validation  
+- Implement **analytics dashboard** for teachers and admins
 
-If everything is set up correctly, you should see your new app running in the Android Emulator, iOS Simulator, or your connected device.
+---
 
-This is one way to run your app — you can also build it directly from Android Studio or Xcode.
+## 👨‍💻 Team
 
-## Step 3: Modify your app
+- **Palash Chitnavis** (2022-IMT-080)  
+- **Mahesh Suryawanshi** (2022-IMT-068)  
+- **Pranav Jarande** (2022-IMT-087)  
+- **Riya Shewale** (2022-IMT-101)
 
-Now that you have successfully run the app, let's make changes!
+---
 
-Open `App.tsx` in your text editor of choice and make some changes. When you save, your app will automatically update and reflect these changes — this is powered by [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
+## 📷 Screenshots
 
-When you want to forcefully reload, for example to reset the state of your app, you can perform a full reload:
+<p align="center">
+  <img src="docs/screenshots/home.png" width="250"/>
+  <img src="docs/screenshots/login.png" width="250"/>
+  <img src="docs/screenshots/scan.png" width="250"/>
+</p>
 
-- **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Dev Menu**, accessed via <kbd>Ctrl</kbd> + <kbd>M</kbd> (Windows/Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (macOS).
-- **iOS**: Press <kbd>R</kbd> in iOS Simulator.
+---
 
-## Congratulations! :tada:
+## 🙌 Contributions
 
-You've successfully run and modified your React Native App. :partying_face:
+Contributions, issues, and feature requests are welcome! Feel free to open a PR or raise an issue.
 
-### Now what?
+---
 
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [docs](https://reactnative.dev/docs/getting-started).
+## 🌐 Connect
 
-# Troubleshooting
-
-If you're having issues getting the above steps to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
-
-# Learn More
-
-To learn more about React Native, take a look at the following resources:
-
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+If you liked this project, give it a ⭐️ and feel free to connect with the developers.
