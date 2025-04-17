@@ -219,12 +219,18 @@ const ClassManagementStudent = () => {
       await updateUser(updatedUser);
       await storeUser(updatedUser);
 
+      let flag = false;
+
       // Sequentially add student to classes to avoid Firestore contention
       for (const cls of normalizedClasses) {
         try {
           await addStudentToClass(cls.classCode, cls.teacherCode, user.email);
         } catch (error) {
-          if (error.message.includes('Class') && error.message.includes('does not exist')) {
+          if (
+            error.message.includes('Class') &&
+            error.message.includes('does not exist')
+          ) {
+            flag = true;
             Alert.alert(
               'Warning',
               `Class ${cls.classCode} with teacher ${cls.teacherCode} does not exist. Other changes saved.`,
@@ -238,7 +244,7 @@ const ClassManagementStudent = () => {
       setOriginalClasses(normalizedClasses);
       setHasChanges(false);
       animateButtonsOut();
-      Alert.alert('Success', 'Changes have been saved');
+      if (!flag) Alert.alert('Success', 'Changes have been saved');
     } catch (error) {
       Alert.alert('Error', error.message || 'Failed to save changes');
     } finally {
@@ -247,18 +253,22 @@ const ClassManagementStudent = () => {
   };
 
   const handleResetChanges = () => {
-    Alert.alert('Reset Changes', 'Are you sure you want to discard all changes?', [
-      {text: 'Cancel', style: 'cancel'},
-      {
-        text: 'Discard',
-        style: 'destructive',
-        onPress: () => {
-          setClasses(originalClasses);
-          setHasChanges(false);
-          animateButtonsOut();
+    Alert.alert(
+      'Reset Changes',
+      'Are you sure you want to discard all changes?',
+      [
+        {text: 'Cancel', style: 'cancel'},
+        {
+          text: 'Discard',
+          style: 'destructive',
+          onPress: () => {
+            setClasses(originalClasses);
+            setHasChanges(false);
+            animateButtonsOut();
+          },
         },
-      },
-    ]);
+      ],
+    );
   };
 
   const animateButtonsIn = () => {
@@ -313,10 +323,13 @@ const ClassManagementStudent = () => {
               style={styles.classCard}>
               <View style={styles.classInfo}>
                 <Text style={styles.classCode}>Class: {cls.classCode}</Text>
-                <Text style={styles.teacherCode}>Teacher: {cls.teacherCode}</Text>
+                <Text style={styles.teacherCode}>
+                  Teacher: {cls.teacherCode}
+                </Text>
               </View>
               {!(
-                user.email?.startsWith('test_student') && cls.classCode === 'TEST_CLASS'
+                user.email?.startsWith('test_student') &&
+                cls.classCode === 'TEST_CLASS'
               ) && (
                 <View style={styles.classActions}>
                   <TouchableOpacity

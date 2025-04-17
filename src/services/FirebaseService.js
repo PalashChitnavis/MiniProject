@@ -3,15 +3,13 @@
 // services/FirebaseService.js
 import {initializeApp} from 'firebase/app';
 import {getDatabase} from 'firebase/database';
-import {
-  getAuth,
-} from 'firebase/auth';
+import {getAuth} from 'firebase/auth';
 import {
   GoogleSignin,
   statusCodes,
 } from '@react-native-google-signin/google-signin';
 import prompt from 'react-native-prompt-android';
-import { createUser, getUser } from './DatabaseService';
+import {createUser, getUser} from './DatabaseService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Config from 'react-native-config';
 
@@ -68,13 +66,15 @@ export const googleLogin = async () => {
       // Match the pattern: letters_YYYYRRR (e.g., imt_2022080)
       const studentMatch = emailPrefix.match(/^([a-z]+)_(\d{4})(\d{3})$/i);
       if (!studentMatch) {
-        throw new Error('Invalid student email format (should be prefix_YYYYRRR@iiitm.ac.in)');
+        throw new Error(
+          'Invalid student email format (should be prefix_YYYYRRR@iiitm.ac.in)',
+        );
       }
       const [, course, batch, rollNumber] = studentMatch;
       userInfo.batch = batch;
       userInfo.rollNumber = rollNumber;
       userInfo.course = course;
-    }else {
+    } else {
       prompt(
         'Faculty Abbreviation',
         'Please enter your faculty abbreviation (e.g., AT for Prof Aditya Trivedi):',
@@ -86,12 +86,13 @@ export const googleLogin = async () => {
           },
           {
             text: 'Submit',
-            onPress: (text) => userInfo.facultyAbbreviation = text.toUpperCase(),
+            onPress: text =>
+              (userInfo.facultyAbbreviation = text.toUpperCase()),
           },
         ],
         'plain-text',
         '',
-        'default'
+        'default',
       );
     }
 
@@ -113,6 +114,10 @@ export const googleLogin = async () => {
 
 // Sign out
 export const signOutUser = async () => {
-  await GoogleSignin.signOut();
-  await AsyncStorage.removeItem('@user');
+  try {
+    await GoogleSignin.signOut();
+    await AsyncStorage.removeItem('@user');
+  } catch (e) {
+    console.log('Error while logout : ', e);
+  }
 };

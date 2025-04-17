@@ -12,7 +12,11 @@ import {
 import {googleLogin, signOutUser} from '../services/FirebaseService';
 import {useAuth} from '../contexts/AuthContext';
 import {useNavigation} from '@react-navigation/native';
-import {addStudentToClass, createUser, getUser} from '../services/DatabaseService';
+import {
+  addStudentToClass,
+  createUser,
+  getUser,
+} from '../services/DatabaseService';
 
 const LoginScreen = () => {
   const {storeUser} = useAuth();
@@ -29,7 +33,9 @@ const LoginScreen = () => {
   const [isProcessing, setIsProcessing] = useState(false);
 
   const handleLogin = async () => {
-    if (isProcessing) {return;}
+    if (isProcessing) {
+      return;
+    }
     setIsProcessing(true);
     try {
       setLoading(true);
@@ -60,7 +66,9 @@ const LoginScreen = () => {
   };
 
   const handleLogout = async () => {
-    if (isProcessing) {return;}
+    if (isProcessing) {
+      return;
+    }
     setIsProcessing(true);
     try {
       setLoading(true);
@@ -89,7 +97,7 @@ const LoginScreen = () => {
     setErrorModal({
       visible: true,
       operation,
-      message: errorMessage,
+      message: 'Problem while logging in',
     });
   };
 
@@ -119,12 +127,14 @@ const LoginScreen = () => {
           onPress: () => navigation.replace('CameraScreen', {first: true}),
         },
       ],
-      {cancelable: false}
+      {cancelable: false},
     );
   };
 
   const handleTestStudent = async () => {
-    if (isProcessing) {return;}
+    if (isProcessing) {
+      return;
+    }
     setIsProcessing(true);
     try {
       setLoading(true);
@@ -172,7 +182,9 @@ const LoginScreen = () => {
   };
 
   const handleTestTeacher = async () => {
-    if (isProcessing) {return;}
+    if (isProcessing) {
+      return;
+    }
     setIsProcessing(true);
     try {
       setLoading(true);

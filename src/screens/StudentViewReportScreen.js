@@ -89,9 +89,13 @@ const StudentViewReportScreen = () => {
 
       const totalClasses = classDates.length;
       const attendedClasses = presentDates.length;
-      const percentage = totalClasses > 0
-        ? Math.min(100, Math.max(0, Math.round((attendedClasses / totalClasses) * 100)))
-        : 0;
+      const percentage =
+        totalClasses > 0
+          ? Math.min(
+              100,
+              Math.max(0, Math.round((attendedClasses / totalClasses) * 100)),
+            )
+          : 0;
 
       return {
         classCode: classInfo.classCode,
@@ -134,7 +138,9 @@ const StudentViewReportScreen = () => {
           <View style={styles.attendanceDetails}>
             <View style={styles.attendanceDetailItem}>
               <Text style={styles.attendanceDetailLabel}>Total:</Text>
-              <Text style={styles.attendanceDetailValue}>{item.totalClasses}</Text>
+              <Text style={styles.attendanceDetailValue}>
+                {item.totalClasses}
+              </Text>
             </View>
             <View style={styles.attendanceDetailItem}>
               <Text style={styles.attendanceDetailLabel}>Present:</Text>
@@ -162,18 +168,28 @@ const StudentViewReportScreen = () => {
   );
 
   const getAttendanceColor = percentage => {
-    if (percentage >= 90) {return '#4CAF50';}
-    if (percentage >= 80) {return '#8BC34A';}
-    if (percentage >= 75) {return '#FFC107';}
+    if (percentage >= 90) {
+      return '#4CAF50';
+    }
+    if (percentage >= 80) {
+      return '#8BC34A';
+    }
+    if (percentage >= 75) {
+      return '#FFC107';
+    }
     return '#F44336';
   };
 
   const formatDate2 = dateStr => {
-    if (!dateStr) {return 'Invalid Date';}
+    if (!dateStr) {
+      return 'Invalid Date';
+    }
     const [day, month, year] = dateStr.split('/');
     const isoDateStr = `${year}-${month}-${day}`;
     const date = new Date(isoDateStr);
-    if (isNaN(date.getTime())) {return 'Invalid Date';}
+    if (isNaN(date.getTime())) {
+      return 'Invalid Date';
+    }
 
     const options = {
       year: 'numeric',
@@ -188,7 +204,9 @@ const StudentViewReportScreen = () => {
     if (!selectedClass?.attendanceRecords?.length) {
       return (
         <View style={styles.attendanceListContainer}>
-          <Text style={styles.sectionTitle}>No attendance records available</Text>
+          <Text style={styles.sectionTitle}>
+            No attendance records available
+          </Text>
         </View>
       );
     }
@@ -197,15 +215,21 @@ const StudentViewReportScreen = () => {
       <View style={styles.attendanceListContainer}>
         <View style={styles.listSection}>
           <Text style={styles.sectionTitle}>Present</Text>
-          {selectedClass.attendanceRecords.filter(item => item.status === 'Present').length === 0 ? (
+          {selectedClass.attendanceRecords.filter(
+            item => item.status === 'Present',
+          ).length === 0 ? (
             <Text style={styles.dateText}>No present records</Text>
           ) : (
-            selectedClass.attendanceRecords.map(item => {
+            selectedClass.attendanceRecords.map((item, index) => {
               if (item.status === 'Present') {
                 return (
-                  <View key={item.date} style={styles.dateItem}>
-                    <View style={[styles.statusDot, {backgroundColor: '#4CAF50'}]} />
-                    <Text style={styles.dateText}>{formatDate2(item.date)}</Text>
+                  <View key={index} style={styles.dateItem}>
+                    <View
+                      style={[styles.statusDot, {backgroundColor: '#4CAF50'}]}
+                    />
+                    <Text style={styles.dateText}>
+                      {formatDate2(item.date)}
+                    </Text>
                   </View>
                 );
               }
@@ -216,15 +240,21 @@ const StudentViewReportScreen = () => {
 
         <View style={styles.listSection}>
           <Text style={styles.sectionTitle}>Absent</Text>
-          {selectedClass.attendanceRecords.filter(item => item.status === 'Absent').length === 0 ? (
+          {selectedClass.attendanceRecords.filter(
+            item => item.status === 'Absent',
+          ).length === 0 ? (
             <Text style={styles.dateText}>No absent records</Text>
           ) : (
-            selectedClass.attendanceRecords.map(item => {
+            selectedClass.attendanceRecords.map((item, index) => {
               if (item.status === 'Absent') {
                 return (
-                  <View key={item.date} style={styles.dateItem}>
-                    <View style={[styles.statusDot, {backgroundColor: '#F44336'}]} />
-                    <Text style={styles.dateText}>{formatDate2(item.date)}</Text>
+                  <View key={index} style={styles.dateItem}>
+                    <View
+                      style={[styles.statusDot, {backgroundColor: '#F44336'}]}
+                    />
+                    <Text style={styles.dateText}>
+                      {formatDate2(item.date)}
+                    </Text>
                   </View>
                 );
               }
@@ -237,16 +267,26 @@ const StudentViewReportScreen = () => {
   };
 
   const getOverAllAttendancePercentage = () => {
-    if (!attendanceData.length) {return 0;}
+    if (!attendanceData.length) {
+      return 0;
+    }
 
-    const totalPercentage = attendanceData.reduce((sum, item) => sum + item.percentage, 0);
-    return Math.min(100, Math.max(0, Math.round(totalPercentage / attendanceData.length)));
+    const totalPercentage = attendanceData.reduce(
+      (sum, item) => sum + item.percentage,
+      0,
+    );
+    return Math.min(
+      100,
+      Math.max(0, Math.round(totalPercentage / attendanceData.length)),
+    );
   };
 
   const renderEmptyState = () => (
     <View style={styles.emptyContainer}>
       <Text style={styles.emptyText}>No classes enrolled</Text>
-      <Text style={styles.emptySubText}>Join a class to view attendance records</Text>
+      <Text style={styles.emptySubText}>
+        Join a class to view attendance records
+      </Text>
     </View>
   );
 
@@ -291,11 +331,18 @@ const StudentViewReportScreen = () => {
           <View style={styles.header}>
             <TouchableOpacity
               style={styles.backButton}
-              onPress={() => setSelectedClass(null)} />
-            <Text style={styles.headerTitle}>{selectedClass?.classCode || 'Unknown Class'}</Text>
-            <Text style={styles.classCode}>{selectedClass?.teacherCode || 'Unknown Teacher'}</Text>
+              onPress={() => setSelectedClass(null)}
+            />
+            <Text style={styles.headerTitle}>
+              {selectedClass?.classCode || 'Unknown Class'}
+            </Text>
+            <Text style={styles.classCode}>
+              {selectedClass?.teacherCode || 'Unknown Teacher'}
+            </Text>
             <Text style={styles.classAttendanceValue}>
-              {selectedClass.percentage !== undefined ? `${selectedClass.percentage}%` : 'N/A'}
+              {selectedClass.percentage !== undefined
+                ? `${selectedClass.percentage}%`
+                : 'N/A'}
             </Text>
           </View>
 
@@ -304,13 +351,18 @@ const StudentViewReportScreen = () => {
               <View style={styles.calendarContainer}>
                 <Calendar
                   markedDates={getMarkedDates()}
-                  onMonthChange={(month) => {
+                  onMonthChange={month => {
                     setCurrentMonth(new Date(month.dateString));
                   }}
                   renderHeader={date => {
                     const month = date.toString('MMMM yyyy');
                     return (
-                      <Text style={{fontSize: 18, fontWeight: 'bold', color: '#2d4150'}}>
+                      <Text
+                        style={{
+                          fontSize: 18,
+                          fontWeight: 'bold',
+                          color: '#2d4150',
+                        }}>
                         {month}
                       </Text>
                     );
@@ -335,11 +387,15 @@ const StudentViewReportScreen = () => {
                 ) : (
                   <View style={styles.legendContainer}>
                     <View style={styles.legendItem}>
-                      <View style={[styles.legendDot, {backgroundColor: '#4CAF50'}]} />
+                      <View
+                        style={[styles.legendDot, {backgroundColor: '#4CAF50'}]}
+                      />
                       <Text style={styles.legendText}>Present</Text>
                     </View>
                     <View style={styles.legendItem}>
-                      <View style={[styles.legendDot, {backgroundColor: '#F44336'}]} />
+                      <View
+                        style={[styles.legendDot, {backgroundColor: '#F44336'}]}
+                      />
                       <Text style={styles.legendText}>Absent</Text>
                     </View>
                   </View>

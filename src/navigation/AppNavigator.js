@@ -23,10 +23,26 @@ const AppNavigator = () => {
     <AuthProvider>
       <NavigationContainer>
         <Stack.Navigator initialRouteName="AuthLoading">
-          <Stack.Screen name="AuthLoading" component={AuthLoadingScreen} />
-          <Stack.Screen name="Login" component={LoginScreen} />
-          <Stack.Screen name="Student" component={StudentScreen} />
-          <Stack.Screen name="Teacher" component={TeacherScreen} />
+          <Stack.Screen
+            name="AuthLoading"
+            component={AuthLoadingScreen}
+            options={{headerLeft: () => null}}
+          />
+          <Stack.Screen
+            name="Login"
+            component={LoginScreen}
+            options={{headerLeft: () => null}}
+          />
+          <Stack.Screen
+            name="Student"
+            component={StudentScreen}
+            options={{headerLeft: () => null}}
+          />
+          <Stack.Screen
+            name="Teacher"
+            component={TeacherScreen}
+            options={{headerLeft: () => null}}
+          />
           <Stack.Screen
             name="ClassManagementStudent"
             component={ClassManagementStudent}
