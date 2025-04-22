@@ -1,6 +1,14 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import React, {useState, useEffect, useCallback} from 'react';
-import {View, Text, StyleSheet, Alert, Animated, Easing, AppState} from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Alert,
+  Animated,
+  Easing,
+  AppState,
+} from 'react-native';
 import ButtonComponent from '../components/ButtonComponent';
 import {
   isBluetoothEnabled,
@@ -10,7 +18,11 @@ import {
 import {useAuth} from '../contexts/AuthContext';
 import {studentPutsAttendance, getUser} from '../services/DatabaseService';
 import {useFocusEffect, useNavigation} from '@react-navigation/native';
-import deviceInfo from 'react-native-device-info';
+// import deviceInfo from 'react-native-device-info';
+import DeviceInfo from 'react-native-device-info';
+import {firebase} from '@react-native-firebase/app';
+import '@react-native-firebase/installations';
+// import { PermissionsAndroid } from 'react-native';
 
 const StudentBluetoothScanScreen = () => {
   const {user} = useAuth();
@@ -26,14 +38,19 @@ const StudentBluetoothScanScreen = () => {
     new Animated.Value(0.2),
     new Animated.Value(0.4),
   ]);
-  const [updatedUser,setUpdatedUser] = useState(user);
+  const [updatedUser, setUpdatedUser] = useState(user);
 
   // Fetch device IDs on mount
   useEffect(() => {
     const fetchDeviceIds = async () => {
       try {
+        // await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.READ_PHONE_STATE);
+
         setIsProcessing(true);
-        const deviceId = await deviceInfo.getUniqueId();
+        // const deviceId = await deviceInfo.getUniqueId();
+        // const deviceId = await firebase.installations().getId();
+        const deviceId = await DeviceInfo.getImei();
+
         setCurrentDeviceId(deviceId);
 
         if (!user?.email) {
@@ -73,7 +90,10 @@ const StudentBluetoothScanScreen = () => {
       }
     };
 
-    const subscription = AppState.addEventListener('change', handleAppStateChange);
+    const subscription = AppState.addEventListener(
+      'change',
+      handleAppStateChange,
+    );
 
     return () => {
       subscription.remove();
@@ -236,7 +256,10 @@ const StudentBluetoothScanScreen = () => {
                 },
               });
             } catch (error) {
-              Alert.alert('Error', 'Failed to navigate to verification screen.');
+              Alert.alert(
+                'Error',
+                'Failed to navigate to verification screen.',
+              );
               setDeviceFound(false);
             }
           },

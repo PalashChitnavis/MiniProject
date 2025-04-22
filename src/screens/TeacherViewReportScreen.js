@@ -42,7 +42,7 @@ const TeacherViewReportScreen = () => {
         try {
           // Fetch attendance reports
           const attendanceReports = await Promise.all(
-            classes.map(async classItem => {
+            classes?.map(async classItem => {
               const report = await getTeachertAttendanceReport(
                 classItem.classCode,
                 teacherCode,
@@ -56,7 +56,7 @@ const TeacherViewReportScreen = () => {
 
           // Fetch class data: enrolled students and dates
           const classResponses = await Promise.all(
-            classes.map(cls =>
+            classes?.map(cls =>
               upsertClassesTeacher(teacherCode, cls.classCode),
             ),
           );
@@ -196,10 +196,11 @@ const TeacherViewReportScreen = () => {
   const renderClassItem = ({item}) => (
     <TouchableOpacity
       style={styles.classCard}
+      key={item.id}
       onPress={() => setSelectedClass(item)}>
       <View style={styles.classCardContent}>
         <View>
-          <Text style={styles.className}>{item.classCode}</Text>
+          <Text style={styles.className}>{item?.classCode}</Text>
           <Text style={styles.classCode}>{user.teacherCode}</Text>
         </View>
         <Text style={styles.arrowIcon}>→</Text>
@@ -208,7 +209,7 @@ const TeacherViewReportScreen = () => {
   );
 
   const renderSessionItem = ({item}) => (
-    <View style={styles.sessionCard}>
+    <View style={styles.sessionCard} key={item.id}>
       <View style={styles.sessionHeader}>
         <Text style={styles.sessionDate}>{item.date}</Text>
         {/* <Text style={styles.sessionTopic}>{item.topic}</Text> */}
@@ -265,7 +266,7 @@ const TeacherViewReportScreen = () => {
   );
 
   const renderStudentItem = ({item}) => (
-    <View style={styles.studentCard}>
+    <View style={styles.studentCard} key={item.id}>
       <View style={styles.studentInfo}>
         <Text style={styles.studentName}>{item}</Text>
       </View>
