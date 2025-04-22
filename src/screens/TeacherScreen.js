@@ -10,10 +10,11 @@ import {
   Image,
   Alert,
 } from 'react-native';
-import {signOutUser} from '../services/FirebaseService';
-import {useAuth} from '../contexts/AuthContext';
+import { signOutUser } from '../services/FirebaseService';
+import { useAuth } from '../contexts/AuthContext';
 
-const {width} = Dimensions.get('window');
+const { width } =
+  Dimensions.get('window');
 const BUTTON_WIDTH = width * 0.42;
 const BUTTON_HEIGHT = 180;
 
@@ -24,18 +25,26 @@ const IMAGES = {
   logout: require('../assets/images/logout.png'),
 };
 
-const TeacherScreen = ({navigation}) => {
+const TeacherScreen = ({
+  navigation,
+}) => {
   const handleTakeAttendance = () => {
-    navigation.navigate('TeacherAttendanceSetup');
+    navigation.navigate(
+      'TeacherAttendanceSetup',
+    );
   };
 
-  const {user} = useAuth();
+  const { user } = useAuth();
 
   const handleManageClasses = () => {
-    navigation.navigate('ClassManagementTeacher');
+    navigation.navigate(
+      'ClassManagementTeacher',
+    );
   };
   const handleViewReports = () => {
-    navigation.navigate('TeacherViewReportScreen');
+    navigation.navigate(
+      'TeacherViewReportScreen',
+    );
   };
   const handleLogout = async () => {
     try {
@@ -48,53 +57,108 @@ const TeacherScreen = ({navigation}) => {
   };
 
   const handleLogoutSuccess = () => {
-    Alert.alert('Logged out', 'You have been successfully logged out');
+    Alert.alert(
+      'Logged out',
+      'You have been successfully logged out',
+    );
   };
 
-  const handleAuthError = (operation, error) => {
+  const handleAuthError = (
+    operation,
+    error,
+  ) => {
     //Alert.alert(`${operation} Error`, error.message);
-    console.log(`${operation} error:`, error);
+    console.log(
+      `${operation} error:`,
+      error,
+    );
   };
 
-  const SectionButton = ({image, title, onPress, color}) => (
+  const SectionButton = ({
+    image,
+    title,
+    onPress,
+    color,
+  }) => (
     <TouchableOpacity
       style={[
         styles.button,
-        {backgroundColor: 'white', borderColor: color, shadowColor: color},
+        {
+          backgroundColor: 'white',
+          borderColor: color,
+          shadowColor: color,
+        },
       ]}
-      onPress={onPress}>
-      <View style={styles.buttonContent}>
-        <Image source={image} style={styles.buttonImage} />
-        <Text style={[styles.buttonText, {color}]}>{title}</Text>
+      onPress={onPress}
+    >
+      <View
+        style={styles.buttonContent}
+      >
+        <Image
+          source={image}
+          style={styles.buttonImage}
+        />
+        <Text
+          style={[
+            styles.buttonText,
+            { color },
+          ]}
+        >
+          {title}
+        </Text>
       </View>
     </TouchableOpacity>
   );
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Teacher Dashboard</Text>
+      <Text style={styles.header}>
+        Teacher Dashboard
+      </Text>
       <View style={styles.infoTable}>
         <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Email</Text>
-          <Text style={styles.infoValue}>{user.email}</Text>
+          <Text
+            style={styles.infoLabel}
+          >
+            Email
+          </Text>
+          <Text
+            style={styles.infoValue}
+          >
+            {user.email}
+          </Text>
         </View>
         <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Teacher Code</Text>
-          <Text style={styles.infoValue}>{user.teacherCode}</Text>
+          <Text
+            style={styles.infoLabel}
+          >
+            Teacher Code
+          </Text>
+          <Text
+            style={styles.infoValue}
+          >
+            {user.teacherCode}
+          </Text>
         </View>
       </View>
-      <View style={styles.gridContainer}>
+      <View
+        style={styles.gridContainer}
+      >
         <View style={styles.row}>
           <SectionButton
             image={IMAGES.attendance}
             title="Take Attendance"
-            onPress={handleTakeAttendance}
+            onPress={
+              handleTakeAttendance
+            }
             color="#4CAF50"
           />
           <SectionButton
             image={IMAGES.classes}
             title="Manage Classes"
-            onPress={handleManageClasses}
+            onPress={
+              handleManageClasses
+            }
             color="#2196F3"
           />
         </View>
@@ -156,7 +220,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     elevation: 5,
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 4},
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
     shadowOpacity: 0.2,
     shadowRadius: 6,
     borderWidth: 2,
@@ -182,7 +249,10 @@ const styles = StyleSheet.create({
     marginBottom: 30,
     elevation: 10,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },

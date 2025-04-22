@@ -1,5 +1,4 @@
-
-import React, {useState} from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -9,7 +8,10 @@ import {
   Image,
   Alert,
 } from 'react-native';
-import {teacherCancelsAttendance, studentPutsAttendance} from '../services/DatabaseService';
+import {
+  teacherCancelsAttendance,
+  studentPutsAttendance,
+} from '../services/DatabaseService';
 
 const AttendanceSection = ({
   attendanceData,
@@ -19,80 +21,133 @@ const AttendanceSection = ({
   handleRefresh,
   isBroadcasting,
 }) => {
-  const [activeTab, setActiveTab] = useState('present');
+  const [activeTab, setActiveTab] =
+    useState('present');
 
-  const presentStudents = attendanceData || [];
-  const absentStudents = classData?.filter(
-    student => !attendanceData?.includes(student),
-  );
-
-  const showStopAttendanceAlert = () => {
-    Alert.alert(
-      'Attendance in Progress',
-      'Please stop the current attendance session before modifying individual records',
-      [
-        { text: 'OK', style: 'cancel' },
-      ]
+  const presentStudents =
+    attendanceData || [];
+  const absentStudents =
+    classData?.filter(
+      (student) =>
+        !attendanceData?.includes(
+          student,
+        ),
     );
-  };
 
-  const handleCancelAttendance = async studentEmail => {
+  const showStopAttendanceAlert =
+    () => {
+      Alert.alert(
+        'Attendance in Progress',
+        'Please stop the current attendance session before modifying individual records',
+        [
+          {
+            text: 'OK',
+            style: 'cancel',
+          },
+        ],
+      );
+    };
+
+  const handleCancelAttendance = async (
+    studentEmail,
+  ) => {
     if (isBroadcasting) {
       showStopAttendanceAlert();
       return;
     }
     try {
-      await teacherCancelsAttendance(teacherCode, classCode, studentEmail);
-      console.log('Attendance cancelled successfully');
+      await teacherCancelsAttendance(
+        teacherCode,
+        classCode,
+        studentEmail,
+      );
+      console.log(
+        'Attendance cancelled successfully',
+      );
       await handleRefresh();
     } catch (error) {
-      Alert('Error cancelling attendance: ' + error.message);
+      Alert(
+        'Error cancelling attendance: ' +
+          error.message,
+      );
     }
   };
 
   // You'll need to implement this function
-  const handleMarkPresent = async studentEmail => {
+  const handleMarkPresent = async (
+    studentEmail,
+  ) => {
     if (isBroadcasting) {
       showStopAttendanceAlert();
       return;
     }
     try {
-      await studentPutsAttendance(teacherCode, classCode, studentEmail);
-      console.log('Attendance marked successfully');
+      await studentPutsAttendance(
+        teacherCode,
+        classCode,
+        studentEmail,
+      );
+      console.log(
+        'Attendance marked successfully',
+      );
       await handleRefresh();
     } catch (error) {
-      Alert('Error marking attendance: ' + error.message);
+      Alert(
+        'Error marking attendance: ' +
+          error.message,
+      );
     }
   };
 
   return (
-    <View style={styles.attendanceContainer}>
+    <View
+      style={styles.attendanceContainer}
+    >
       {/* Toggle Tabs */}
-      <View style={styles.tabsContainer}>
+      <View
+        style={styles.tabsContainer}
+      >
         <TouchableOpacity
           style={[
             styles.tabButton,
-            activeTab === 'present' && styles.activeTab,
+            activeTab === 'present' &&
+              styles.activeTab,
           ]}
-          onPress={() => setActiveTab('present')}>
+          onPress={() =>
+            setActiveTab('present')
+          }
+        >
           <Text
             style={[
               styles.tabText,
-              activeTab === 'present' && styles.activeTabText,
-            ]}>
-            Present ({presentStudents?.length})
+              activeTab === 'present' &&
+                styles.activeTabText,
+            ]}
+          >
+            Present (
+            {presentStudents?.length})
           </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.tabButton, activeTab === 'absent' && styles.activeTab]}
-          onPress={() => setActiveTab('absent')}>
+          style={[
+            styles.tabButton,
+            activeTab === 'absent' &&
+              styles.activeTab,
+          ]}
+          onPress={() =>
+            setActiveTab('absent')
+          }
+        >
           <Text
             style={[
               styles.tabText,
-              activeTab === 'absent' && styles.activeTabText,
-            ]}>
-            Absent ({absentStudents?.length})
+              activeTab === 'absent' &&
+                styles.activeTabText,
+            ]}
+          >
+            Absent (
+            {absentStudents?.length})
           </Text>
         </TouchableOpacity>
       </View>
@@ -103,51 +158,112 @@ const AttendanceSection = ({
           <ScrollView
             style={styles.studentsList}
             persistentScrollbar={true}
-            showsVerticalScrollIndicator={true}>
-            {presentStudents.map((student, index) => (
-              <View key={index} style={styles.studentItem}>
-                <Text style={styles.studentText}>
-                  {student.split('@')[0].replace('_', ' ').toUpperCase()}
-                </Text>
-                <TouchableOpacity
-                  onPress={() => handleCancelAttendance(student)}
-                  style={styles.actionButton}>
-                  <Image
-                    source={require('../assets/images/cross.png')}
-                    style={styles.actionImageCross}
-                  />
-                </TouchableOpacity>
-              </View>
-            ))}
+            showsVerticalScrollIndicator={
+              true
+            }
+          >
+            {presentStudents.map(
+              (student, index) => (
+                <View
+                  key={index}
+                  style={
+                    styles.studentItem
+                  }
+                >
+                  <Text
+                    style={
+                      styles.studentText
+                    }
+                  >
+                    {student
+                      .split('@')[0]
+                      .replace('_', ' ')
+                      .toUpperCase()}
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() =>
+                      handleCancelAttendance(
+                        student,
+                      )
+                    }
+                    style={
+                      styles.actionButton
+                    }
+                  >
+                    <Image
+                      source={require('../assets/images/cross.png')}
+                      style={
+                        styles.actionImageCross
+                      }
+                    />
+                  </TouchableOpacity>
+                </View>
+              ),
+            )}
           </ScrollView>
         ) : (
-          <Text style={styles.noStudentsText}>
-            No students marked present yet
+          <Text
+            style={
+              styles.noStudentsText
+            }
+          >
+            No students marked present
+            yet
           </Text>
         )
       ) : absentStudents.length > 0 ? (
         <ScrollView
           style={styles.studentsList}
           persistentScrollbar={true}
-          showsVerticalScrollIndicator={true}>
-          {absentStudents.map((student, index) => (
-            <View key={index} style={styles.studentItem}>
-              <Text style={styles.studentText}>
-                {student.split('@')[0].replace('_', ' ').toUpperCase()}
-              </Text>
-              <TouchableOpacity
-                onPress={() => handleMarkPresent(student)}
-                style={styles.actionButton}>
-                <Image
-                  source={require('../assets/images/check.png')}
-                  style={styles.actionImage}
-                />
-              </TouchableOpacity>
-            </View>
-          ))}
+          showsVerticalScrollIndicator={
+            true
+          }
+        >
+          {absentStudents.map(
+            (student, index) => (
+              <View
+                key={index}
+                style={
+                  styles.studentItem
+                }
+              >
+                <Text
+                  style={
+                    styles.studentText
+                  }
+                >
+                  {student
+                    .split('@')[0]
+                    .replace('_', ' ')
+                    .toUpperCase()}
+                </Text>
+                <TouchableOpacity
+                  onPress={() =>
+                    handleMarkPresent(
+                      student,
+                    )
+                  }
+                  style={
+                    styles.actionButton
+                  }
+                >
+                  <Image
+                    source={require('../assets/images/check.png')}
+                    style={
+                      styles.actionImage
+                    }
+                  />
+                </TouchableOpacity>
+              </View>
+            ),
+          )}
         </ScrollView>
       ) : (
-        <Text style={styles.noStudentsText}>All students are present</Text>
+        <Text
+          style={styles.noStudentsText}
+        >
+          All students are present
+        </Text>
       )}
     </View>
   );
@@ -162,7 +278,10 @@ const styles = StyleSheet.create({
     minHeight: 200,
     maxHeight: 300,
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
     shadowOpacity: 0.1,
     shadowRadius: 6,
     elevation: 10,

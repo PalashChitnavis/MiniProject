@@ -1,6 +1,11 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable react-native/no-inline-styles */
-import React, { useState, useRef, useEffect, use } from 'react';
+import React, {
+  useState,
+  useRef,
+  useEffect,
+  use,
+} from 'react';
 import {
   View,
   Text,
@@ -15,26 +20,47 @@ import {
   BackHandler,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
-import { updateUser, upsertClassesTeacher } from '../services/DatabaseService';
+import {
+  updateUser,
+  upsertClassesTeacher,
+} from '../services/DatabaseService';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigation } from '@react-navigation/native';
 
 const ClassManagementTeacher = () => {
-  const {user, storeUser} = useAuth();
+  const { user, storeUser } = useAuth();
   const navigation = useNavigation();
   // Initial classes data
-  const initialClasses = user.classes || [];
+  const initialClasses =
+    user.classes || [];
 
-  const [originalClasses, setOriginalClasses] = useState(initialClasses);
-  const [classes, setClasses] = useState(initialClasses);
-  const [hasChanges, setHasChanges] = useState(false);
-  const buttonSlideAnim = useRef(new Animated.Value(0)).current;
+  const [
+    originalClasses,
+    setOriginalClasses,
+  ] = useState(initialClasses);
+  const [classes, setClasses] =
+    useState(initialClasses);
+  const [hasChanges, setHasChanges] =
+    useState(false);
+  const buttonSlideAnim = useRef(
+    new Animated.Value(0),
+  ).current;
 
   // Form state
-  const [modalVisible, setModalVisible] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editingIndex, setEditingIndex] = useState(null);
-  const [currentClass, setCurrentClass] = useState({
+  const [
+    modalVisible,
+    setModalVisible,
+  ] = useState(false);
+  const [isEditing, setIsEditing] =
+    useState(false);
+  const [
+    editingIndex,
+    setEditingIndex,
+  ] = useState(null);
+  const [
+    currentClass,
+    setCurrentClass,
+  ] = useState({
     classCode: '',
   });
 
@@ -48,22 +74,27 @@ const ClassManagementTeacher = () => {
       return false;
     };
 
-    const backHandler = BackHandler.addEventListener(
-      'hardwareBackPress',
-      backAction
-    );
+    const backHandler =
+      BackHandler.addEventListener(
+        'hardwareBackPress',
+        backAction,
+      );
 
     // Add navigation listener for software back button
-    const unsubscribe = navigation.addListener('beforeRemove', (e) => {
-      if (!hasChanges) {
-        return;
-      }
+    const unsubscribe =
+      navigation.addListener(
+        'beforeRemove',
+        (e) => {
+          if (!hasChanges) {
+            return;
+          }
 
-      // Prevent default behavior of leaving the screen
-      e.preventDefault();
+          // Prevent default behavior of leaving the screen
+          e.preventDefault();
 
-      showUnsavedChangesAlert(e);
-    });
+          showUnsavedChangesAlert(e);
+        },
+      );
 
     return () => {
       backHandler.remove();
@@ -71,7 +102,9 @@ const ClassManagementTeacher = () => {
     };
   }, [hasChanges, navigation]);
 
-  const showUnsavedChangesAlert = (e) => {
+  const showUnsavedChangesAlert = (
+    e,
+  ) => {
     Alert.alert(
       'Unsaved Changes',
       'You have unsaved changes. Do you want to save them before leaving?',
@@ -83,14 +116,18 @@ const ClassManagementTeacher = () => {
             // Reset changes and allow navigation
             setClasses(originalClasses);
             setHasChanges(false);
-            navigation.dispatch(e.data.action);
+            navigation.dispatch(
+              e.data.action,
+            );
           },
         },
         {
           text: 'Save',
           onPress: async () => {
             await handleApplyChanges();
-            navigation.dispatch(e.data.action);
+            navigation.dispatch(
+              e.data.action,
+            );
           },
         },
         {
@@ -100,13 +137,16 @@ const ClassManagementTeacher = () => {
             // Do nothing, stay on screen
           },
         },
-      ]
+      ],
     );
   };
 
   // Convert input to uppercase
-  const handleInputChange = (field, value) => {
-    setCurrentClass(prev => ({
+  const handleInputChange = (
+    field,
+    value,
+  ) => {
+    setCurrentClass((prev) => ({
       ...prev,
       [field]: value.toUpperCase(), // Auto-uppercase
     }));
@@ -123,50 +163,89 @@ const ClassManagementTeacher = () => {
 
   // Check if class already exists
   const classExists = (cls) => {
-    return classes.some(existingClass =>
-      existingClass.classCode.toUpperCase() === cls.classCode.toUpperCase()
+    return classes.some(
+      (existingClass) =>
+        existingClass.classCode.toUpperCase() ===
+        cls.classCode.toUpperCase(),
     );
   };
 
   // Check if another class with same data exists (for editing)
-  const anotherClassExists = (cls, currentIndex) => {
-    return classes.some((existingClass, index) =>
-      index !== currentIndex &&
-      existingClass.classCode === cls.classCode
+  const anotherClassExists = (
+    cls,
+    currentIndex,
+  ) => {
+    return classes.some(
+      (existingClass, index) =>
+        index !== currentIndex &&
+        existingClass.classCode ===
+          cls.classCode,
     );
   };
 
   // Submit class (add or update)
   const handleSubmit = () => {
-    if (!currentClass.classCode.trim()) {
-      Alert.alert('Error', 'Please enter a valid class code');
+    if (
+      !currentClass.classCode.trim()
+    ) {
+      Alert.alert(
+        'Error',
+        'Please enter a valid class code',
+      );
       return;
     }
 
-    if (!/^[A-Za-z]+$/.test(currentClass.classCode.trim())) {
-      Alert.alert('Error', 'Class code should contain only letters');
+    if (
+      !/^[A-Za-z]+$/.test(
+        currentClass.classCode.trim(),
+      )
+    ) {
+      Alert.alert(
+        'Error',
+        'Class code should contain only letters',
+      );
       return;
     }
 
-    if (isEditing && editingIndex !== null) {
+    if (
+      isEditing &&
+      editingIndex !== null
+    ) {
       // Editing existing class
-      if (anotherClassExists(currentClass, editingIndex)) {
-        Alert.alert('Error', 'A class with this code already exists');
+      if (
+        anotherClassExists(
+          currentClass,
+          editingIndex,
+        )
+      ) {
+        Alert.alert(
+          'Error',
+          'A class with this code already exists',
+        );
         return;
       }
 
-      const updatedClasses = [...classes];
-      updatedClasses[editingIndex] = currentClass;
+      const updatedClasses = [
+        ...classes,
+      ];
+      updatedClasses[editingIndex] =
+        currentClass;
       setClasses(updatedClasses);
       setHasChanges(true);
       animateButtonsIn();
     } else {
       if (classExists(currentClass)) {
-        Alert.alert('Error', 'This class code already exists');
+        Alert.alert(
+          'Error',
+          'This class code already exists',
+        );
         return;
       }
 
-      const updatedClasses = [...classes, currentClass];
+      const updatedClasses = [
+        ...classes,
+        currentClass,
+      ];
       setClasses(updatedClasses);
       setHasChanges(true);
       animateButtonsIn();
@@ -190,40 +269,62 @@ const ClassManagementTeacher = () => {
       'Delete Class',
       'Are you sure you want to delete this class?',
       [
-        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
         {
           text: 'Delete',
           style: 'destructive',
           onPress: () => {
-            const newClasses = classes.filter((_, i) => i !== index);
+            const newClasses =
+              classes.filter(
+                (_, i) => i !== index,
+              );
             setClasses(newClasses);
             setHasChanges(true);
             animateButtonsIn();
           },
         },
-      ]
+      ],
     );
   };
 
   // Apply changes
-  const handleApplyChanges = async () => {
-    // Ensure all class codes are uppercase
-    const normalizedClasses = classes.map(cls => ({
-      classCode: cls.classCode.toUpperCase(),
-    }));
+  const handleApplyChanges =
+    async () => {
+      // Ensure all class codes are uppercase
+      const normalizedClasses =
+        classes.map((cls) => ({
+          classCode:
+            cls.classCode.toUpperCase(),
+        }));
 
-    setOriginalClasses(normalizedClasses);
-    console.log(normalizedClasses);
-    const updatedUser = {...user, classes: normalizedClasses};
-    await storeUser(updatedUser);
-    await updateUser(updatedUser);
-    await Promise.all(normalizedClasses.map(cls =>
-      upsertClassesTeacher(user.teacherCode, cls.classCode)
-    ));
-    setHasChanges(false);
-    animateButtonsOut();
-    Alert.alert('Success', 'Changes have been saved');
-  };
+      setOriginalClasses(
+        normalizedClasses,
+      );
+      console.log(normalizedClasses);
+      const updatedUser = {
+        ...user,
+        classes: normalizedClasses,
+      };
+      await storeUser(updatedUser);
+      await updateUser(updatedUser);
+      await Promise.all(
+        normalizedClasses.map((cls) =>
+          upsertClassesTeacher(
+            user.teacherCode,
+            cls.classCode,
+          ),
+        ),
+      );
+      setHasChanges(false);
+      animateButtonsOut();
+      Alert.alert(
+        'Success',
+        'Changes have been saved',
+      );
+    };
 
   // Reset changes
   const handleResetChanges = () => {
@@ -231,7 +332,10 @@ const ClassManagementTeacher = () => {
       'Reset Changes',
       'Are you sure you want to discard all changes?',
       [
-        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
         {
           text: 'Discard',
           style: 'destructive',
@@ -241,7 +345,7 @@ const ClassManagementTeacher = () => {
             animateButtonsOut();
           },
         },
-      ]
+      ],
     );
   };
 
@@ -264,16 +368,20 @@ const ClassManagementTeacher = () => {
     }).start();
   };
 
-  const buttonsTranslateY = buttonSlideAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [100, 0],
-  });
+  const buttonsTranslateY =
+    buttonSlideAnim.interpolate({
+      inputRange: [0, 1],
+      outputRange: [100, 0],
+    });
 
   return (
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerText}>Class Codes For {user.teacherCode}</Text>
+        <Text style={styles.headerText}>
+          Class Codes For{' '}
+          {user.teacherCode}
+        </Text>
         <TouchableOpacity
           style={styles.addButton}
           onPress={() => {
@@ -281,7 +389,11 @@ const ClassManagementTeacher = () => {
             setModalVisible(true);
           }}
         >
-          <Icon name="add" size={24} color="#fff" />
+          <Icon
+            name="add"
+            size={24}
+            color="#fff"
+          />
         </TouchableOpacity>
       </View>
 
@@ -289,23 +401,77 @@ const ClassManagementTeacher = () => {
       <ScrollView
         contentContainerStyle={[
           styles.classesContainer,
-          { paddingBottom: hasChanges ? 100 : 20 }, // Add space for buttons when visible
+          {
+            paddingBottom: hasChanges
+              ? 100
+              : 20,
+          }, // Add space for buttons when visible
         ]}
       >
         {classes.length === 0 ? (
-          <Text style={styles.emptyText}>No Class Codes Added Yet</Text>
+          <Text
+            style={styles.emptyText}
+          >
+            No Class Codes Added Yet
+          </Text>
         ) : (
           classes.map((cls, index) => (
-            <View key={`${cls.classCode}-${index}`} style={styles.classCard}>
-              <View style={styles.classInfo}>
-                <Text style={styles.classCode}>{cls.classCode}</Text>
+            <View
+              key={`${cls.classCode}-${index}`}
+              style={styles.classCard}
+            >
+              <View
+                style={styles.classInfo}
+              >
+                <Text
+                  style={
+                    styles.classCode
+                  }
+                >
+                  {cls.classCode}
+                </Text>
               </View>
-              <View style={styles.classActions}>
-                {!(user.email === 'test_teacher@iiitm.ac.in' && cls.classCode === 'TEST_CLASS') && <><TouchableOpacity onPress={() => handleEdit(cls, index)}>
-                  <Icon name="create-outline" size={20} color="#4a8cff" />
-                </TouchableOpacity><TouchableOpacity onPress={() => handleDelete(index)}>
-                    <Icon name="trash-outline" size={20} color="#ff6b6b" />
-                  </TouchableOpacity></>}
+              <View
+                style={
+                  styles.classActions
+                }
+              >
+                {!(
+                  user.email ===
+                    'test_teacher@iiitm.ac.in' &&
+                  cls.classCode ===
+                    'TEST_CLASS'
+                ) && (
+                  <>
+                    <TouchableOpacity
+                      onPress={() =>
+                        handleEdit(
+                          cls,
+                          index,
+                        )
+                      }
+                    >
+                      <Icon
+                        name="create-outline"
+                        size={20}
+                        color="#4a8cff"
+                      />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() =>
+                        handleDelete(
+                          index,
+                        )
+                      }
+                    >
+                      <Icon
+                        name="trash-outline"
+                        size={20}
+                        color="#ff6b6b"
+                      />
+                    </TouchableOpacity>
+                  </>
+                )}
               </View>
             </View>
           ))
@@ -316,22 +482,51 @@ const ClassManagementTeacher = () => {
       <Animated.View
         style={[
           styles.changesButtonsContainer,
-          { transform: [{ translateY: buttonsTranslateY }] },
+          {
+            transform: [
+              {
+                translateY:
+                  buttonsTranslateY,
+              },
+            ],
+          },
         ]}
       >
         {hasChanges && (
           <>
             <TouchableOpacity
-              style={[styles.changesButton, styles.resetButton]}
-              onPress={handleResetChanges}
+              style={[
+                styles.changesButton,
+                styles.resetButton,
+              ]}
+              onPress={
+                handleResetChanges
+              }
             >
-              <Text style={styles.changesButtonText}>Discard</Text>
+              <Text
+                style={
+                  styles.changesButtonText
+                }
+              >
+                Discard
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.changesButton, styles.applyButton]}
-              onPress={handleApplyChanges}
+              style={[
+                styles.changesButton,
+                styles.applyButton,
+              ]}
+              onPress={
+                handleApplyChanges
+              }
             >
-              <Text style={styles.changesButtonText}>Save</Text>
+              <Text
+                style={
+                  styles.changesButtonText
+                }
+              >
+                Save
+              </Text>
             </TouchableOpacity>
           </>
         )}
@@ -347,48 +542,92 @@ const ClassManagementTeacher = () => {
           resetForm();
         }}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>
-              {isEditing ? 'Edit Class Code' : 'Add New Class Code'}
+        <View
+          style={styles.modalOverlay}
+        >
+          <View
+            style={styles.modalContent}
+          >
+            <Text
+              style={styles.modalTitle}
+            >
+              {isEditing
+                ? 'Edit Class Code'
+                : 'Add New Class Code'}
             </Text>
 
             <TextInput
               style={styles.input}
               placeholder="Enter class code (e.g., WCT)"
               placeholderTextColor="#666"
-              value={currentClass.classCode}
-              onChangeText={(text) => handleInputChange('classCode', text)}
+              value={
+                currentClass.classCode
+              }
+              onChangeText={(text) =>
+                handleInputChange(
+                  'classCode',
+                  text,
+                )
+              }
               selectionColor="#4a8cff"
               underlineColorAndroid="transparent"
               autoCapitalize="characters"
               autoFocus={true}
             />
-            <Text style={styles.modalTitleA}>
-              Example: WCT, OS, DS, AI, CN etc
+            <Text
+              style={styles.modalTitleA}
+            >
+              Example: WCT, OS, DS, AI,
+              CN etc
             </Text>
-            <Text style={styles.modalTitleB}>
-              Use Class Codes only, not full names.
+            <Text
+              style={styles.modalTitleB}
+            >
+              Use Class Codes only, not
+              full names.
             </Text>
 
-
-            <View style={styles.modalButtons}>
+            <View
+              style={
+                styles.modalButtons
+              }
+            >
               <TouchableOpacity
-                style={[styles.modalButton, styles.cancelButton]}
+                style={[
+                  styles.modalButton,
+                  styles.cancelButton,
+                ]}
                 onPress={() => {
-                  setModalVisible(false);
+                  setModalVisible(
+                    false,
+                  );
                   resetForm();
                 }}
               >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
+                <Text
+                  style={
+                    styles.cancelButtonText
+                  }
+                >
+                  Cancel
+                </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.modalButton, styles.submitButton]}
+                style={[
+                  styles.modalButton,
+                  styles.submitButton,
+                ]}
                 onPress={handleSubmit}
               >
-                <Text style={styles.submitButtonText}>
-                  {isEditing ? 'Update' : 'Add'}
+                <Text
+                  style={
+                    styles.submitButtonText
+                  }
+                >
+                  {isEditing
+                    ? 'Update'
+                    : 'Add'}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -398,7 +637,6 @@ const ClassManagementTeacher = () => {
     </View>
   );
 };
-
 
 const styles = StyleSheet.create({
   container: {
@@ -446,7 +684,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     elevation: 10,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
     shadowOpacity: 0.1,
     shadowRadius: 2,
   },
@@ -466,7 +707,8 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor:
+      'rgba(0, 0, 0, 0.5)',
   },
   modalContent: {
     width: '90%',
@@ -544,7 +786,10 @@ const styles = StyleSheet.create({
     borderTopColor: '#e0e0e0',
     elevation: 5,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
+    shadowOffset: {
+      width: 0,
+      height: -2,
+    },
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },

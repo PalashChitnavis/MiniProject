@@ -1,10 +1,22 @@
 import React from 'react';
-import { View, Text, TextInput, StyleSheet } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  StyleSheet,
+} from 'react-native';
 
-const TeacherAttendanceFormInput = ({ label, value, onChangeText, placeholder }) => {
+const TeacherAttendanceFormInput = ({
+  label,
+  value,
+  onChangeText,
+  placeholder,
+}) => {
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>{label}</Text>
+      <Text style={styles.label}>
+        {label}
+      </Text>
       <TextInput
         style={styles.input}
         value={value}

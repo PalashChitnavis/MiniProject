@@ -31,12 +31,12 @@ A mobile application that uses **Bluetooth Low Energy (BLE)** and **Facial Recog
 
 ## 🧠 Tech Stack
 
-| Technology      | Purpose                          |
-|-----------------|----------------------------------|
-| React Native    | Frontend Mobile Development      |
-| Firebase        | Authentication & Realtime DB     |
-| AWS Rekognition | Face Comparison and Matching     |
-| BLE Module      | Device Proximity Verification    |
+| Technology      | Purpose                       |
+| --------------- | ----------------------------- |
+| React Native    | Frontend Mobile Development   |
+| Firebase        | Authentication & Realtime DB  |
+| AWS Rekognition | Face Comparison and Matching  |
+| BLE Module      | Device Proximity Verification |
 
 ---
 
@@ -44,32 +44,31 @@ A mobile application that uses **Bluetooth Low Energy (BLE)** and **Facial Recog
 
 The system consists of:
 
-- A mobile app for Students and Teachers  
-- Firebase backend services (Authentication, Database)  
-- AWS for facial recognition  
-- BLE scanning to verify physical proximity  
+- A mobile app for Students and Teachers
+- Firebase backend services (Authentication, Database)
+- AWS for facial recognition
+- BLE scanning to verify physical proximity
 - MAC ID mapping for device-level validation
-
 
 ---
 
 ## 📈 Future Scope
 
-- Integrate **Geolocation APIs** to supplement BLE for nearby but out-of-range students  
-- Add **Random Roll Call Verification** to reduce proxy attempts  
-- Build a **custom ML model** for faster, offline facial recognition  
-- Use **SQL/PostgreSQL** for optimized data handling and faster queries  
-- Add **notification system** for anomalies like duplicate logins or suspicious behavior  
-- Explore **NFC-based scanning** for even faster proximity validation  
+- Integrate **Geolocation APIs** to supplement BLE for nearby but out-of-range students
+- Add **Random Roll Call Verification** to reduce proxy attempts
+- Build a **custom ML model** for faster, offline facial recognition
+- Use **SQL/PostgreSQL** for optimized data handling and faster queries
+- Add **notification system** for anomalies like duplicate logins or suspicious behavior
+- Explore **NFC-based scanning** for even faster proximity validation
 - Implement **analytics dashboard** for teachers and admins
 
 ---
 
 ## 👨‍💻 Team
 
-- **Palash Chitnavis** (2022-IMT-080)  
-- **Mahesh Suryawanshi** (2022-IMT-068)  
-- **Pranav Jarande** (2022-IMT-087)  
+- **Palash Chitnavis** (2022-IMT-080)
+- **Mahesh Suryawanshi** (2022-IMT-068)
+- **Pranav Jarande** (2022-IMT-087)
 - **Riya Shewale** (2022-IMT-101)
 
 ---

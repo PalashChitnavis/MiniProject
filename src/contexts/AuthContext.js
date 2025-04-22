@@ -1,18 +1,34 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 // contexts/AuthContext.js
-import React, { createContext, useState, useEffect } from 'react';
+import React, {
+  createContext,
+  useState,
+  useEffect,
+} from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-export const AuthContext = createContext();
+export const AuthContext =
+  createContext();
 
-export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
+export const AuthProvider = ({
+  children,
+}) => {
+  const [user, setUser] =
+    useState(null);
 
-  const storeUser = async (userData) => {
+  const storeUser = async (
+    userData,
+  ) => {
     try {
-      await AsyncStorage.setItem('@user', JSON.stringify(userData));
+      await AsyncStorage.setItem(
+        '@user',
+        JSON.stringify(userData),
+      );
       setUser(userData);
     } catch (e) {
-      console.error('Error saving user', e);
+      console.error(
+        'Error saving user',
+        e,
+      );
     }
   };
 
@@ -20,12 +36,20 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const loadUser = async () => {
       try {
-        const userString = await AsyncStorage.getItem('@user');
+        const userString =
+          await AsyncStorage.getItem(
+            '@user',
+          );
         if (userString) {
-          setUser(JSON.parse(userString));
+          setUser(
+            JSON.parse(userString),
+          );
         }
       } catch (error) {
-        console.error('Error loading user', error);
+        console.error(
+          'Error loading user',
+          error,
+        );
       }
     };
 
@@ -33,10 +57,13 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, storeUser }}>
+    <AuthContext.Provider
+      value={{ user, storeUser }}
+    >
       {children}
     </AuthContext.Provider>
   );
 };
 
-export const useAuth = () => React.useContext(AuthContext);
+export const useAuth = () =>
+  React.useContext(AuthContext);

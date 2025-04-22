@@ -1,5 +1,8 @@
 // TeacherScreen.js
-import React, {useEffect, useState} from 'react';
+import React, {
+  useEffect,
+  useState,
+} from 'react';
 import {
   View,
   Text,
@@ -11,103 +14,154 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
-import {useAuth} from '../contexts/AuthContext';
+import { useAuth } from '../contexts/AuthContext';
 import {
   getTeachertAttendanceReport,
   upsertClassesTeacher,
 } from '../services/DatabaseService';
-import {Calendar} from 'react-native-calendars';
-import {CSV} from 'react-native-csv';
+import { Calendar } from 'react-native-calendars';
+import { CSV } from 'react-native-csv';
 import RNFS from 'react-native-fs';
 import Share from 'react-native-share';
 
 const TeacherViewReportScreen = () => {
-  const {user} = useAuth();
-  const [attendanceData, setAttendanceData] = useState([]);
+  const { user } = useAuth();
+  const [
+    attendanceData,
+    setAttendanceData,
+  ] = useState([]);
 
-  const [selectedClass, setSelectedClass] = useState(null);
-  const [activeTab, setActiveTab] = useState('attendance');
+  const [
+    selectedClass,
+    setSelectedClass,
+  ] = useState(null);
+  const [activeTab, setActiveTab] =
+    useState('attendance');
 
-  const [exportTriggered, setExportTriggered] = useState(false);
+  const [
+    exportTriggered,
+    setExportTriggered,
+  ] = useState(false);
 
   useEffect(() => {
     console.log(attendanceData);
   }, [attendanceData]);
 
   useEffect(() => {
-    const fetchAttendanceReports = async () => {
-      if (user?.type === 'teacher' && user?.classes?.length > 0) {
-        const {teacherCode, classes} = user;
+    const fetchAttendanceReports =
+      async () => {
+        if (
+          user?.type === 'teacher' &&
+          user?.classes?.length > 0
+        ) {
+          const {
+            teacherCode,
+            classes,
+          } = user;
 
-        try {
-          // Fetch attendance reports
-          const attendanceReports = await Promise.all(
-            classes?.map(async classItem => {
-              const report = await getTeachertAttendanceReport(
-                classItem.classCode,
-                teacherCode,
+          try {
+            // Fetch attendance reports
+            const attendanceReports =
+              await Promise.all(
+                classes?.map(
+                  async (classItem) => {
+                    const report =
+                      await getTeachertAttendanceReport(
+                        classItem.classCode,
+                        teacherCode,
+                      );
+                    return {
+                      classCode:
+                        classItem.classCode,
+                      report,
+                    };
+                  },
+                ),
               );
-              return {
-                classCode: classItem.classCode,
-                report,
-              };
-            }),
-          );
 
-          // Fetch class data: enrolled students and dates
-          const classResponses = await Promise.all(
-            classes?.map(cls =>
-              upsertClassesTeacher(teacherCode, cls.classCode),
-            ),
-          );
+            // Fetch class data: enrolled students and dates
+            const classResponses =
+              await Promise.all(
+                classes?.map((cls) =>
+                  upsertClassesTeacher(
+                    teacherCode,
+                    cls.classCode,
+                  ),
+                ),
+              );
 
-          // Merge and update each class item
-          const mergedResults = attendanceReports.map((item, index) => {
-            const response = classResponses[index];
-            const enrolledStudents = response?.students || [];
+            // Merge and update each class item
+            const mergedResults =
+              attendanceReports.map(
+                (item, index) => {
+                  const response =
+                    classResponses[
+                      index
+                    ];
+                  const enrolledStudents =
+                    response?.students ||
+                    [];
 
-            // Add `absent` array to each report.classes element
-            const updatedClasses =
-              item?.report?.classes?.map(entry => {
-                const present = entry.present || [];
-                const absent = enrolledStudents.filter(
-                  student => !present.includes(student),
-                );
-                return {
-                  ...entry,
-                  absent, // ⬅️ added here
-                };
-              }) || [];
+                  // Add `absent` array to each report.classes element
+                  const updatedClasses =
+                    item?.report?.classes?.map(
+                      (entry) => {
+                        const present =
+                          entry.present ||
+                          [];
+                        const absent =
+                          enrolledStudents.filter(
+                            (student) =>
+                              !present.includes(
+                                student,
+                              ),
+                          );
+                        return {
+                          ...entry,
+                          absent, // ⬅️ added here
+                        };
+                      },
+                    ) || [];
 
-            return {
-              ...item,
-              report: {
-                ...item.report,
-                classes: updatedClasses, // ⬅️ updated classes with absent info
-              },
-              datesConducted: response?.dates || [],
-              enrolledStudents,
-            };
-          });
+                  return {
+                    ...item,
+                    report: {
+                      ...item.report,
+                      classes:
+                        updatedClasses, // ⬅️ updated classes with absent info
+                    },
+                    datesConducted:
+                      response?.dates ||
+                      [],
+                    enrolledStudents,
+                  };
+                },
+              );
 
-          setAttendanceData(mergedResults);
-        } catch (error) {
-          console.error(
-            'Failed to fetch attendance reports or class info:',
-            error,
-          );
+            setAttendanceData(
+              mergedResults,
+            );
+          } catch (error) {
+            console.error(
+              'Failed to fetch attendance reports or class info:',
+              error,
+            );
+          }
         }
-      }
-    };
+      };
 
     fetchAttendanceReports();
   }, [user]);
 
-  const [isExporting, setIsExporting] = useState(false);
+  const [isExporting, setIsExporting] =
+    useState(false);
 
   const handleExportData = async () => {
     if (!selectedClass) {
-      Alert.alert('Error', 'No class selected');
+      Alert.alert(
+        'Error',
+        'No class selected',
+      );
       return;
     }
 
@@ -118,62 +172,102 @@ const TeacherViewReportScreen = () => {
       const csvRows = [];
 
       // Add header rows with class information
-      csvRows.push(`Class: ${selectedClass.classCode}`);
-      csvRows.push(`Teacher: ${user.teacherCode}`);
+      csvRows.push(
+        `Class: ${selectedClass.classCode}`,
+      );
+      csvRows.push(
+        `Teacher: ${user.teacherCode}`,
+      );
       csvRows.push(''); // Empty row for spacing
 
       // Prepare the header row with dates
-      const headerRow = ['Student Email'];
-      selectedClass.datesConducted.forEach(date => {
-        headerRow.push(date);
-      });
+      const headerRow = [
+        'Student Email',
+      ];
+      selectedClass.datesConducted.forEach(
+        (date) => {
+          headerRow.push(date);
+        },
+      );
       headerRow.push('Attendance %');
       csvRows.push(headerRow.join(','));
 
       // Sort students by email
-      const sortedStudents = [...selectedClass.enrolledStudents].sort();
+      const sortedStudents = [
+        ...selectedClass.enrolledStudents,
+      ].sort();
 
       // Process each student's attendance data
-      sortedStudents.forEach(student => {
-        const studentRow = [student];
-        let presentCount = 0;
+      sortedStudents.forEach(
+        (student) => {
+          const studentRow = [student];
+          let presentCount = 0;
 
-        selectedClass.datesConducted.forEach(date => {
-          // Check if student was present on this date
-          const classSession = selectedClass.report.classes.find(
-            session => session.date === date,
+          selectedClass.datesConducted.forEach(
+            (date) => {
+              // Check if student was present on this date
+              const classSession =
+                selectedClass.report.classes.find(
+                  (session) =>
+                    session.date ===
+                    date,
+                );
+
+              const isPresent =
+                classSession &&
+                classSession.present.includes(
+                  student,
+                );
+              studentRow.push(
+                isPresent ? '1' : '0',
+              );
+              if (isPresent)
+                presentCount++;
+            },
           );
 
-          const isPresent =
-            classSession && classSession.present.includes(student);
-          studentRow.push(isPresent ? '1' : '0');
-          if (isPresent) presentCount++;
-        });
+          // Calculate attendance percentage
+          const percentage =
+            selectedClass.datesConducted
+              .length > 0
+              ? (
+                  (presentCount /
+                    selectedClass
+                      .datesConducted
+                      .length) *
+                  100
+                ).toFixed(2)
+              : '0.00';
+          studentRow.push(
+            `${percentage}%`,
+          );
 
-        // Calculate attendance percentage
-        const percentage =
-          selectedClass.datesConducted.length > 0
-            ? (
-                (presentCount / selectedClass.datesConducted.length) *
-                100
-              ).toFixed(2)
-            : '0.00';
-        studentRow.push(`${percentage}%`);
-
-        csvRows.push(studentRow.join(','));
-      });
+          csvRows.push(
+            studentRow.join(','),
+          );
+        },
+      );
 
       // Join all rows with newlines to create CSV content
-      const csvContent = csvRows.join('\n');
+      const csvContent =
+        csvRows.join('\n');
 
       // Define file path for saving
-      const fileName = `attendance_${selectedClass.classCode}_${
-        new Date().toISOString().split('T')[0]
+      const fileName = `attendance_${
+        selectedClass.classCode
+      }_${
+        new Date()
+          .toISOString()
+          .split('T')[0]
       }.csv`;
       const filePath = `${RNFS.DocumentDirectoryPath}/${fileName}`;
 
       // Write CSV content to file
-      await RNFS.writeFile(filePath, csvContent, 'utf8');
+      await RNFS.writeFile(
+        filePath,
+        csvContent,
+        'utf8',
+      );
 
       // Open share dialog
       const shareOptions = {
@@ -184,115 +278,263 @@ const TeacherViewReportScreen = () => {
       };
 
       await Share.open(shareOptions);
-      Alert.alert('Success', 'Attendance data exported successfully');
+      Alert.alert(
+        'Success',
+        'Attendance data exported successfully',
+      );
     } catch (error) {
-      console.error('Export failed:', error);
-      Alert.alert('Error', 'Failed to export attendance data');
+      console.error(
+        'Export failed:',
+        error,
+      );
+      Alert.alert(
+        'Error',
+        'Failed to export attendance data',
+      );
     } finally {
       setIsExporting(false);
     }
   };
 
-  const renderClassItem = ({item}) => (
+  const renderClassItem = ({
+    item,
+  }) => (
     <TouchableOpacity
       style={styles.classCard}
       key={item.id}
-      onPress={() => setSelectedClass(item)}>
-      <View style={styles.classCardContent}>
+      onPress={() =>
+        setSelectedClass(item)
+      }
+    >
+      <View
+        style={styles.classCardContent}
+      >
         <View>
-          <Text style={styles.className}>{item?.classCode}</Text>
-          <Text style={styles.classCode}>{user.teacherCode}</Text>
+          <Text
+            style={styles.className}
+          >
+            {item?.classCode}
+          </Text>
+          <Text
+            style={styles.classCode}
+          >
+            {user.teacherCode}
+          </Text>
         </View>
-        <Text style={styles.arrowIcon}>→</Text>
+        <Text style={styles.arrowIcon}>
+          →
+        </Text>
       </View>
     </TouchableOpacity>
   );
 
-  const renderSessionItem = ({item}) => (
-    <View style={styles.sessionCard} key={item.id}>
-      <View style={styles.sessionHeader}>
-        <Text style={styles.sessionDate}>{item.date}</Text>
+  const renderSessionItem = ({
+    item,
+  }) => (
+    <View
+      style={styles.sessionCard}
+      key={item.id}
+    >
+      <View
+        style={styles.sessionHeader}
+      >
+        <Text
+          style={styles.sessionDate}
+        >
+          {item.date}
+        </Text>
         {/* <Text style={styles.sessionTopic}>{item.topic}</Text> */}
       </View>
 
-      <View style={styles.attendanceSummary}>
-        <View style={styles.attendanceStat}>
-          <Text style={styles.statValue}>{item.present.length}</Text>
-          <Text style={styles.statLabel}>Present</Text>
-        </View>
-        <View style={styles.attendanceStat}>
-          <Text style={styles.statValue}>
-            {selectedClass?.enrolledStudents.length - item.present.length}
+      <View
+        style={styles.attendanceSummary}
+      >
+        <View
+          style={styles.attendanceStat}
+        >
+          <Text
+            style={styles.statValue}
+          >
+            {item.present.length}
           </Text>
-          <Text style={styles.statLabel}>Absent</Text>
+          <Text
+            style={styles.statLabel}
+          >
+            Present
+          </Text>
         </View>
-        <View style={styles.attendanceStat}>
-          <Text style={styles.statValue}>
+        <View
+          style={styles.attendanceStat}
+        >
+          <Text
+            style={styles.statValue}
+          >
+            {selectedClass
+              ?.enrolledStudents
+              .length -
+              item.present.length}
+          </Text>
+          <Text
+            style={styles.statLabel}
+          >
+            Absent
+          </Text>
+        </View>
+        <View
+          style={styles.attendanceStat}
+        >
+          <Text
+            style={styles.statValue}
+          >
             {Math.round(
-              (item.present.length / selectedClass?.enrolledStudents.length) *
+              (item.present.length /
+                selectedClass
+                  ?.enrolledStudents
+                  .length) *
                 100,
             )}
             %
           </Text>
-          <Text style={styles.statLabel}>Attendance</Text>
+          <Text
+            style={styles.statLabel}
+          >
+            Attendance
+          </Text>
         </View>
       </View>
 
-      <Text style={styles.studentListHeader}>Students</Text>
+      <Text
+        style={styles.studentListHeader}
+      >
+        Students
+      </Text>
       <ScrollView
         style={styles.studentScrollView}
-        showsVerticalScrollIndicator={true}
-        contentContainerStyle={styles.studentScrollContent}>
-        {item?.present?.map(student => (
-          <View key={student} style={styles.studentRow}>
-            <Text style={styles.studentName}>{student}</Text>
-            <View style={[styles.statusBadge, styles.presentBadge]}>
-              <Text style={[styles.statusText, styles.presentText]}>
-                Present
+        showsVerticalScrollIndicator={
+          true
+        }
+        contentContainerStyle={
+          styles.studentScrollContent
+        }
+      >
+        {item?.present?.map(
+          (student) => (
+            <View
+              key={student}
+              style={styles.studentRow}
+            >
+              <Text
+                style={
+                  styles.studentName
+                }
+              >
+                {student}
               </Text>
+              <View
+                style={[
+                  styles.statusBadge,
+                  styles.presentBadge,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.statusText,
+                    styles.presentText,
+                  ]}
+                >
+                  Present
+                </Text>
+              </View>
             </View>
-          </View>
-        ))}
-        {item?.absent?.map(student => (
-          <View key={student} style={styles.studentRow}>
-            <Text style={styles.studentName}>{student}</Text>
-            <View style={[styles.statusBadge, styles.absentBadge]}>
-              <Text style={[styles.statusText, styles.absentText]}>Absent</Text>
+          ),
+        )}
+        {item?.absent?.map(
+          (student) => (
+            <View
+              key={student}
+              style={styles.studentRow}
+            >
+              <Text
+                style={
+                  styles.studentName
+                }
+              >
+                {student}
+              </Text>
+              <View
+                style={[
+                  styles.statusBadge,
+                  styles.absentBadge,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.statusText,
+                    styles.absentText,
+                  ]}
+                >
+                  Absent
+                </Text>
+              </View>
             </View>
-          </View>
-        ))}
+          ),
+        )}
       </ScrollView>
     </View>
   );
 
-  const renderStudentItem = ({item}) => (
-    <View style={styles.studentCard} key={item.id}>
+  const renderStudentItem = ({
+    item,
+  }) => (
+    <View
+      style={styles.studentCard}
+      key={item.id}
+    >
       <View style={styles.studentInfo}>
-        <Text style={styles.studentName}>{item}</Text>
+        <Text
+          style={styles.studentName}
+        >
+          {item}
+        </Text>
       </View>
     </View>
   );
 
-  const getAttendanceColor = percentage => {
-    if (percentage >= 90) return '#4CAF50';
-    if (percentage >= 80) return '#8BC34A';
-    if (percentage >= 75) return '#FFC107';
+  const getAttendanceColor = (
+    percentage,
+  ) => {
+    if (percentage >= 90)
+      return '#4CAF50';
+    if (percentage >= 80)
+      return '#8BC34A';
+    if (percentage >= 75)
+      return '#FFC107';
     return '#F44336';
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView
+      style={styles.container}
+    >
       {!selectedClass ? (
         // Classes List Screen
         <>
           <View style={styles.header}>
-            <Text style={styles.headerTitle}>My Classes</Text>
+            <Text
+              style={styles.headerTitle}
+            >
+              My Classes
+            </Text>
           </View>
           <FlatList
             data={attendanceData}
             renderItem={renderClassItem}
-            keyExtractor={item => item.id}
-            contentContainerStyle={styles.classesList}
+            keyExtractor={(item) =>
+              item.id
+            }
+            contentContainerStyle={
+              styles.classesList
+            }
           />
         </>
       ) : (
@@ -304,78 +546,220 @@ const TeacherViewReportScreen = () => {
               onPress={() => setSelectedClass(null)}>
               <Text style={styles.backButtonText}>←</Text>
             </TouchableOpacity> */}
-            <Text style={styles.headerTitle}>
+            <Text
+              style={styles.headerTitle}
+            >
               {selectedClass.classCode}
               {/* {console.log(selectedClass)} */}
             </Text>
-            <Text style={styles.classCode}>{user.teacherCode}</Text>
+            <Text
+              style={styles.classCode}
+            >
+              {user.teacherCode}
+            </Text>
           </View>
 
           <View style={styles.content}>
-            {activeTab === 'attendance' && (
+            {activeTab ===
+              'attendance' && (
               <ScrollView
-                style={styles.studentScrollView3}
-                showsVerticalScrollIndicator={true}
-                contentContainerStyle={styles.studentScrollContent}>
+                style={
+                  styles.studentScrollView3
+                }
+                showsVerticalScrollIndicator={
+                  true
+                }
+                contentContainerStyle={
+                  styles.studentScrollContent
+                }
+              >
                 <FlatList
-                  data={selectedClass?.report?.classes}
-                  renderItem={renderSessionItem}
-                  keyExtractor={item => item.id}
-                  contentContainerStyle={styles.sessionsList}
+                  data={
+                    selectedClass
+                      ?.report?.classes
+                  }
+                  renderItem={
+                    renderSessionItem
+                  }
+                  keyExtractor={(
+                    item,
+                  ) => item.id}
+                  contentContainerStyle={
+                    styles.sessionsList
+                  }
                 />
               </ScrollView>
             )}
-            {activeTab === 'details' && (
-              <View style={styles.classDetailsContainer}>
-                <View style={styles.classInfoCard}>
-                  <Text style={styles.classInfoTitle}>Class Information</Text>
-                  <View style={styles.classInfoRow}>
-                    <Text style={styles.infoLabel}>Class Code:</Text>
-                    <Text style={styles.infoValue}>
-                      {selectedClass.classCode}
+            {activeTab ===
+              'details' && (
+              <View
+                style={
+                  styles.classDetailsContainer
+                }
+              >
+                <View
+                  style={
+                    styles.classInfoCard
+                  }
+                >
+                  <Text
+                    style={
+                      styles.classInfoTitle
+                    }
+                  >
+                    Class Information
+                  </Text>
+                  <View
+                    style={
+                      styles.classInfoRow
+                    }
+                  >
+                    <Text
+                      style={
+                        styles.infoLabel
+                      }
+                    >
+                      Class Code:
+                    </Text>
+                    <Text
+                      style={
+                        styles.infoValue
+                      }
+                    >
+                      {
+                        selectedClass.classCode
+                      }
                     </Text>
                   </View>
-                  <View style={styles.classInfoRow}>
-                    <Text style={styles.infoLabel}>Teacher Code:</Text>
-                    <Text style={styles.infoValue}>{user.teacherCode}</Text>
+                  <View
+                    style={
+                      styles.classInfoRow
+                    }
+                  >
+                    <Text
+                      style={
+                        styles.infoLabel
+                      }
+                    >
+                      Teacher Code:
+                    </Text>
+                    <Text
+                      style={
+                        styles.infoValue
+                      }
+                    >
+                      {user.teacherCode}
+                    </Text>
                   </View>
-                  <View style={styles.classInfoRow}>
-                    <Text style={styles.infoLabel}>Total Students:</Text>
-                    <Text style={styles.infoValue}>
-                      {selectedClass.enrolledStudents.length}
+                  <View
+                    style={
+                      styles.classInfoRow
+                    }
+                  >
+                    <Text
+                      style={
+                        styles.infoLabel
+                      }
+                    >
+                      Total Students:
+                    </Text>
+                    <Text
+                      style={
+                        styles.infoValue
+                      }
+                    >
+                      {
+                        selectedClass
+                          .enrolledStudents
+                          .length
+                      }
                     </Text>
                   </View>
                 </View>
 
-                <Text style={styles.enrolledTitle}>Enrolled Students</Text>
+                <Text
+                  style={
+                    styles.enrolledTitle
+                  }
+                >
+                  Enrolled Students
+                </Text>
                 <ScrollView
-                  style={styles.studentScrollView2}
-                  showsVerticalScrollIndicator={true}
-                  contentContainerStyle={styles.studentScrollContent}>
+                  style={
+                    styles.studentScrollView2
+                  }
+                  showsVerticalScrollIndicator={
+                    true
+                  }
+                  contentContainerStyle={
+                    styles.studentScrollContent
+                  }
+                >
                   <FlatList
-                    data={selectedClass?.enrolledStudents}
-                    renderItem={renderStudentItem}
-                    keyExtractor={item => item.id}
-                    contentContainerStyle={styles.enrolledList}
-                    scrollEnabled={false}
-                    nestedScrollEnabled={true}
+                    data={
+                      selectedClass?.enrolledStudents
+                    }
+                    renderItem={
+                      renderStudentItem
+                    }
+                    keyExtractor={(
+                      item,
+                    ) => item.id}
+                    contentContainerStyle={
+                      styles.enrolledList
+                    }
+                    scrollEnabled={
+                      false
+                    }
+                    nestedScrollEnabled={
+                      true
+                    }
                   />
                 </ScrollView>
               </View>
             )}
             {/* In your content section */}
             {activeTab === 'export' && (
-              <View style={styles.exportContainer}>
-                <Text style={styles.exportTitle}>Export Attendance Data</Text>
+              <View
+                style={
+                  styles.exportContainer
+                }
+              >
+                <Text
+                  style={
+                    styles.exportTitle
+                  }
+                >
+                  Export Attendance Data
+                </Text>
 
                 {/* Data summary preview */}
-                <View style={styles.dataPreview}>
-                  <Text style={styles.previewText}>
-                    {selectedClass?.report?.classes?.length || 0} sessions
-                    available
+                <View
+                  style={
+                    styles.dataPreview
+                  }
+                >
+                  <Text
+                    style={
+                      styles.previewText
+                    }
+                  >
+                    {selectedClass
+                      ?.report?.classes
+                      ?.length ||
+                      0}{' '}
+                    sessions available
                   </Text>
-                  <Text style={styles.previewText}>
-                    {selectedClass?.enrolledStudents?.length || 0} students
+                  <Text
+                    style={
+                      styles.previewText
+                    }
+                  >
+                    {selectedClass
+                      ?.enrolledStudents
+                      ?.length ||
+                      0}{' '}
+                    students
                   </Text>
                 </View>
 
@@ -383,14 +767,24 @@ const TeacherViewReportScreen = () => {
                 <TouchableOpacity
                   style={[
                     styles.exportButton,
-                    isExporting && styles.exportButtonDisabled,
+                    isExporting &&
+                      styles.exportButtonDisabled,
                   ]}
-                  onPress={handleExportData}
-                  disabled={isExporting}>
+                  onPress={
+                    handleExportData
+                  }
+                  disabled={isExporting}
+                >
                   {isExporting ? (
                     <ActivityIndicator color="white" />
                   ) : (
-                    <Text style={styles.exportButtonText}>Export as CSV</Text>
+                    <Text
+                      style={
+                        styles.exportButtonText
+                      }
+                    >
+                      Export as CSV
+                    </Text>
                   )}
                 </TouchableOpacity>
               </View>
@@ -401,36 +795,68 @@ const TeacherViewReportScreen = () => {
             <TouchableOpacity
               style={[
                 styles.tab,
-                activeTab === 'attendance' && styles.activeTab,
+                activeTab ===
+                  'attendance' &&
+                  styles.activeTab,
               ]}
-              onPress={() => setActiveTab('attendance')}>
+              onPress={() =>
+                setActiveTab(
+                  'attendance',
+                )
+              }
+            >
               <Text
                 style={[
                   styles.tabText,
-                  activeTab === 'attendance' && styles.activeTabText,
-                ]}>
+                  activeTab ===
+                    'attendance' &&
+                    styles.activeTabText,
+                ]}
+              >
                 Attendance
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.tab, activeTab === 'details' && styles.activeTab]}
-              onPress={() => setActiveTab('details')}>
+              style={[
+                styles.tab,
+                activeTab ===
+                  'details' &&
+                  styles.activeTab,
+              ]}
+              onPress={() =>
+                setActiveTab('details')
+              }
+            >
               <Text
                 style={[
                   styles.tabText,
-                  activeTab === 'details' && styles.activeTabText,
-                ]}>
+                  activeTab ===
+                    'details' &&
+                    styles.activeTabText,
+                ]}
+              >
                 Class Details
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.tab, activeTab === 'export' && styles.activeTab]}
-              onPress={() => setActiveTab('export')}>
+              style={[
+                styles.tab,
+                activeTab ===
+                  'export' &&
+                  styles.activeTab,
+              ]}
+              onPress={() =>
+                setActiveTab('export')
+              }
+            >
               <Text
                 style={[
                   styles.tabText,
-                  activeTab === 'export' && styles.activeTabText,
-                ]}>
+                  activeTab ===
+                    'export' &&
+                    styles.activeTabText,
+                ]}
+              >
                 Export Data
               </Text>
             </TouchableOpacity>
@@ -450,7 +876,10 @@ const styles = StyleSheet.create({
     padding: 20,
     backgroundColor: '#FFFFFF',
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
     shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 10,
@@ -468,7 +897,10 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginBottom: 12,
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 1},
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
     shadowOpacity: 0.05,
     shadowRadius: 2,
     elevation: 10,
@@ -527,7 +959,10 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     padding: 16,
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 1},
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
     shadowOpacity: 0.05,
     shadowRadius: 2,
     elevation: 10,
@@ -614,7 +1049,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     backgroundColor: '#FFFFFF',
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: -2},
+    shadowOffset: {
+      width: 0,
+      height: -2,
+    },
     shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 10,

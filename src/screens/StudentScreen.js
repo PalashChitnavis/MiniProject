@@ -1,7 +1,9 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable react/no-unstable-nested-components */
 /* eslint-disable react-native/no-inline-styles */
-import React, {useEffect} from 'react';
+import React, {
+  useEffect,
+} from 'react';
 import {
   View,
   Text,
@@ -11,11 +13,12 @@ import {
   Image,
   Alert,
 } from 'react-native';
-import {signOutUser} from '../services/FirebaseService';
-import {useAuth} from '../contexts/AuthContext';
+import { signOutUser } from '../services/FirebaseService';
+import { useAuth } from '../contexts/AuthContext';
 import { getUser } from '../services/DatabaseService';
 
-const {width} = Dimensions.get('window');
+const { width } =
+  Dimensions.get('window');
 const BUTTON_WIDTH = width * 0.42; // Adjusted for grid
 const BUTTON_HEIGHT = 180; // Taller buttons for better proportions
 
@@ -27,17 +30,25 @@ const IMAGES = {
   logout: require('../assets/images/logout.png'),
 };
 
-const StudentScreen = ({navigation}) => {
-  const {user} = useAuth();
+const StudentScreen = ({
+  navigation,
+}) => {
+  const { user } = useAuth();
   // Placeholder functions
   const handleGiveAttendance = () => {
-    navigation.navigate('StudentBluetoothScanScreen');
+    navigation.navigate(
+      'StudentBluetoothScanScreen',
+    );
   };
   const handleEditClasses = () => {
-    navigation.navigate('ClassManagementStudent');
+    navigation.navigate(
+      'ClassManagementStudent',
+    );
   };
   const handleViewAttendance = () => {
-    navigation.navigate('StudentViewReportScreen');
+    navigation.navigate(
+      'StudentViewReportScreen',
+    );
   };
   const handleLogout = async () => {
     try {
@@ -50,20 +61,37 @@ const StudentScreen = ({navigation}) => {
   };
 
   const handleLogoutSuccess = () => {
-    Alert.alert('Logged out', 'You have been successfully logged out');
+    Alert.alert(
+      'Logged out',
+      'You have been successfully logged out',
+    );
   };
 
-  const handleAuthError = (operation, error) => {
-    Alert.alert(`${operation} Error`, error.message);
-    console.log(`${operation} error:`, error);
+  const handleAuthError = (
+    operation,
+    error,
+  ) => {
+    Alert.alert(
+      `${operation} Error`,
+      error.message,
+    );
+    console.log(
+      `${operation} error:`,
+      error,
+    );
   };
 
   const getUserData = async () => {
     try {
-      const userData = await getUser(user.email);
+      const userData = await getUser(
+        user.email,
+      );
       return userData;
     } catch (error) {
-      console.error('Error fetching user data:', error);
+      console.error(
+        'Error fetching user data:',
+        error,
+      );
       return null;
     }
   };
@@ -71,7 +99,8 @@ const StudentScreen = ({navigation}) => {
   useEffect(() => {
     async function checkUserData() {
       try {
-        const dbUser = await getUserData();
+        const dbUser =
+          await getUserData();
         if (!dbUser?.photoUrl) {
           Alert.alert(
             'No Photo Found',
@@ -85,59 +114,112 @@ const StudentScreen = ({navigation}) => {
                     await signOutUser();
                     navigation.reset({
                       index: 0,
-                      routes: [{ name: 'Login' }],
+                      routes: [
+                        {
+                          name: 'Login',
+                        },
+                      ],
                     });
                   } catch (error) {
-                    handleAuthError('Logout', error);
+                    handleAuthError(
+                      'Logout',
+                      error,
+                    );
                   }
                 },
               },
               {
                 text: 'OK',
-                onPress: () => navigation.replace('CameraScreen', { first: true }),
+                onPress: () =>
+                  navigation.replace(
+                    'CameraScreen',
+                    { first: true },
+                  ),
               },
             ],
-            { cancelable: false }
+            { cancelable: false },
           );
         }
       } catch (error) {
-        console.error('Error in checkUserData:', error);
-        Alert.alert('Error', 'Failed to verify user data. Please try again.');
+        console.error(
+          'Error in checkUserData:',
+          error,
+        );
+        Alert.alert(
+          'Error',
+          'Failed to verify user data. Please try again.',
+        );
       }
     }
 
     checkUserData();
   }, [navigation]);
 
-  const SectionButton = ({image, title, onPress, color}) => (
+  const SectionButton = ({
+    image,
+    title,
+    onPress,
+    color,
+  }) => (
     <TouchableOpacity
       style={[
         styles.button,
-        {backgroundColor: 'white', borderColor: color, shadowColor: color},
+        {
+          backgroundColor: 'white',
+          borderColor: color,
+          shadowColor: color,
+        },
       ]}
-      onPress={onPress}>
-      <View style={styles.buttonContent}>
-        <Image source={image} style={styles.buttonImage} />
-        <Text style={[styles.buttonText, {color: 'black'}]}>{title}</Text>
+      onPress={onPress}
+    >
+      <View
+        style={styles.buttonContent}
+      >
+        <Image
+          source={image}
+          style={styles.buttonImage}
+        />
+        <Text
+          style={[
+            styles.buttonText,
+            { color: 'black' },
+          ]}
+        >
+          {title}
+        </Text>
       </View>
     </TouchableOpacity>
   );
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Student Dashboard</Text>
+      <Text style={styles.header}>
+        Student Dashboard
+      </Text>
       <View style={styles.infoTable}>
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Email</Text>
-                <Text style={styles.infoValue}>{user.email}</Text>
-              </View>
-            </View>
-      <View style={styles.gridContainer}>
+        <View style={styles.infoRow}>
+          <Text
+            style={styles.infoLabel}
+          >
+            Email
+          </Text>
+          <Text
+            style={styles.infoValue}
+          >
+            {user.email}
+          </Text>
+        </View>
+      </View>
+      <View
+        style={styles.gridContainer}
+      >
         <View style={styles.row}>
           <SectionButton
             image={IMAGES.attendance}
             title="Give Attendance"
-            onPress={handleGiveAttendance}
+            onPress={
+              handleGiveAttendance
+            }
             color="#4CAF50" // Green
           />
           <SectionButton
@@ -152,7 +234,9 @@ const StudentScreen = ({navigation}) => {
           <SectionButton
             image={IMAGES.history}
             title="View Attendance"
-            onPress={handleViewAttendance}
+            onPress={
+              handleViewAttendance
+            }
             color="#FF9800" // Orange
           />
           <SectionButton
@@ -205,11 +289,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     elevation: 10,
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 4},
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
     shadowOpacity: 0.2,
     shadowRadius: 6,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.3)',
+    borderColor:
+      'rgba(255,255,255,0.3)',
   },
   buttonContent: {
     alignItems: 'center',
@@ -237,7 +325,10 @@ const styles = StyleSheet.create({
     marginBottom: 30,
     elevation: 10,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     marginTop: 30,

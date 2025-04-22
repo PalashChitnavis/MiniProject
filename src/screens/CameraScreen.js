@@ -1,6 +1,10 @@
 /* eslint-disable no-dupe-keys */
 /* eslint-disable react-hooks/exhaustive-deps */
-import React, {useState, useRef, useEffect} from 'react';
+import React, {
+  useState,
+  useRef,
+  useEffect,
+} from 'react';
 import {
   StyleSheet,
   View,
@@ -11,33 +15,63 @@ import {
   Alert,
   Animated,
 } from 'react-native';
-import {Camera, useCameraDevice} from 'react-native-vision-camera';
-import {useAuth} from '../contexts/AuthContext';
-import {useNavigation} from '@react-navigation/native';
+import {
+  Camera,
+  useCameraDevice,
+} from 'react-native-vision-camera';
+import { useAuth } from '../contexts/AuthContext';
+import { useNavigation } from '@react-navigation/native';
 import {
   compareFaces,
   imageToBase64,
   uploadUserPhoto,
 } from '../services/ImageService';
 
-const CameraScreen = ({route}) => {
-  const {user} = useAuth();
-  const device = useCameraDevice('front');
+const CameraScreen = ({ route }) => {
+  const { user } = useAuth();
+  const device =
+    useCameraDevice('front');
   const camera = useRef(null);
-  const [isActive, setIsActive] = useState(true);
-  const [permissionStatus, setPermissionStatus] = useState('not-determined');
-  const [capturedPhoto, setCapturedPhoto] = useState(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadStatus, setUploadStatus] = useState(null);
+  const [isActive, setIsActive] =
+    useState(true);
+  const [
+    permissionStatus,
+    setPermissionStatus,
+  ] = useState('not-determined');
+  const [
+    capturedPhoto,
+    setCapturedPhoto,
+  ] = useState(null);
+  const [isUploading, setIsUploading] =
+    useState(false);
+  const [
+    uploadStatus,
+    setUploadStatus,
+  ] = useState(null);
   const navigation = useNavigation();
-  const isFirstTime = route.params?.first ?? false;
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const {teacherCode, classCode, studentEmail, photoUrl} = route.params;
-  const progressAnimation = useRef(new Animated.Value(0)).current;
+  const isFirstTime =
+    route.params?.first ?? false;
+  const [
+    uploadProgress,
+    setUploadProgress,
+  ] = useState(0);
+  const {
+    teacherCode,
+    classCode,
+    studentEmail,
+    photoUrl,
+  } = route.params;
+  const progressAnimation = useRef(
+    new Animated.Value(0),
+  ).current;
 
   useEffect(() => {
     checkPermissions();
-    console.log(teacherCode, classCode, studentEmail);
+    console.log(
+      teacherCode,
+      classCode,
+      studentEmail,
+    );
   }, []);
 
   useEffect(() => {
@@ -50,11 +84,13 @@ const CameraScreen = ({route}) => {
   }, [uploadProgress]);
 
   const checkPermissions = async () => {
-    const status = await Camera.getCameraPermissionStatus();
+    const status =
+      await Camera.getCameraPermissionStatus();
     setPermissionStatus(status);
 
     if (status !== 'granted') {
-      const newStatus = await Camera.requestCameraPermission();
+      const newStatus =
+        await Camera.requestCameraPermission();
       setPermissionStatus(newStatus);
     }
   };
@@ -62,14 +98,21 @@ const CameraScreen = ({route}) => {
   const capturePhoto = async () => {
     if (camera.current) {
       try {
-        const photo = await camera.current.takePhoto({
-          qualityPrioritization: 'quality',
-          flash: 'off',
-        });
+        const photo =
+          await camera.current.takePhoto(
+            {
+              qualityPrioritization:
+                'quality',
+              flash: 'off',
+            },
+          );
         setCapturedPhoto(photo);
         setIsActive(false); // Pause camera when previewing
       } catch (error) {
-        console.error('Failed to capture photo:', error);
+        console.error(
+          'Failed to capture photo:',
+          error,
+        );
       }
     }
   };
@@ -84,20 +127,30 @@ const CameraScreen = ({route}) => {
     setUploadProgress(0);
 
     const updateProgress = () => {
-      setUploadProgress(prev => {
-        const randomIncrement = 0.01 + Math.random() * 0.05;
-        const newValue = prev + randomIncrement;
-        const capped = newValue > 0.9 ? 0.9 : newValue;
+      setUploadProgress((prev) => {
+        const randomIncrement =
+          0.01 + Math.random() * 0.05;
+        const newValue =
+          prev + randomIncrement;
+        const capped =
+          newValue > 0.9
+            ? 0.9
+            : newValue;
 
         // If we're not at the cap yet, schedule another update
         if (capped < 0.9) {
-          setTimeout(updateProgress, 1000);
+          setTimeout(
+            updateProgress,
+            1000,
+          );
         }
 
         return capped;
       });
 
-      console.log('Progress update tick');
+      console.log(
+        'Progress update tick',
+      );
     };
 
     // Start the recursive updates
@@ -112,106 +165,162 @@ const CameraScreen = ({route}) => {
   //   };
   // }, []);
 
-  const handleAcceptFirstTime = async () => {
-    if (!capturedPhoto || !user?.email) {
-      return;
-    }
+  const handleAcceptFirstTime =
+    async () => {
+      if (
+        !capturedPhoto ||
+        !user?.email
+      ) {
+        return;
+      }
 
-    try {
-      setIsUploading(true);
-      setUploadStatus('uploading');
+      try {
+        setIsUploading(true);
+        setUploadStatus('uploading');
 
-      const progressInterval = startProgressInterval();
+        const progressInterval =
+          startProgressInterval();
 
-      const downloadUrl = await uploadUserPhoto(user.email, capturedPhoto.path);
-      console.log('Photo uploaded successfully:', downloadUrl);
-
-      clearInterval(progressInterval);
-      setUploadProgress(1); // Set to 100% when complete
-
-      // Show success alert first
-      await new Promise(resolve => {
-        Alert.alert(
-          'Success',
-          'Profile picture uploaded successfully!',
-          [
-            {
-              text: 'OK',
-              onPress: () => resolve(),
-            },
-          ],
-          {cancelable: false},
+        const downloadUrl =
+          await uploadUserPhoto(
+            user.email,
+            capturedPhoto.path,
+          );
+        console.log(
+          'Photo uploaded successfully:',
+          downloadUrl,
         );
-      });
 
-      // Then navigate to Student screen
-      navigation.replace('Student');
-    } catch (error) {
-      console.error('Failed to upload photo:', error);
-      Alert.alert('Error', 'Failed to upload photo. Please try again.');
-    } finally {
-      setIsUploading(false);
-    }
-  };
+        clearInterval(progressInterval);
+        setUploadProgress(1); // Set to 100% when complete
 
-  const handleAcceptAttendance = async () => {
-    if (!capturedPhoto || !user?.email) {
-      return;
-    }
+        // Show success alert first
+        await new Promise((resolve) => {
+          Alert.alert(
+            'Success',
+            'Profile picture uploaded successfully!',
+            [
+              {
+                text: 'OK',
+                onPress: () =>
+                  resolve(),
+              },
+            ],
+            { cancelable: false },
+          );
+        });
 
-    try {
-      setIsUploading(true);
+        // Then navigate to Student screen
+        navigation.replace('Student');
+      } catch (error) {
+        console.error(
+          'Failed to upload photo:',
+          error,
+        );
+        Alert.alert(
+          'Error',
+          'Failed to upload photo. Please try again.',
+        );
+      } finally {
+        setIsUploading(false);
+      }
+    };
 
-      setUploadStatus('processing');
-      const progressInterval = startProgressInterval();
+  const handleAcceptAttendance =
+    async () => {
+      if (
+        !capturedPhoto ||
+        !user?.email
+      ) {
+        return;
+      }
 
-      // Rest of your image processing code...
-      const firebaseImageResponse = await fetch(photoUrl);
-      const firebaseImageBlob = await firebaseImageResponse.blob();
+      try {
+        setIsUploading(true);
 
-      const [sourceBase64, targetBase64] = await Promise.all([
-        new Promise(resolve => {
-          const reader = new FileReader();
-          reader.onloadend = () => {
-            resolve(reader.result.split(',')[1]);
-          };
-          reader.readAsDataURL(firebaseImageBlob);
-        }),
-        imageToBase64(`file://${capturedPhoto.path}`),
-      ]);
+        setUploadStatus('processing');
+        const progressInterval =
+          startProgressInterval();
 
-      // Fix the issue with directly reassigning result
-      let result = await compareFaces(sourceBase64, targetBase64);
+        // Rest of your image processing code...
+        const firebaseImageResponse =
+          await fetch(photoUrl);
+        const firebaseImageBlob =
+          await firebaseImageResponse.blob();
 
-      console.log('Face comparison result:', result);
+        const [
+          sourceBase64,
+          targetBase64,
+        ] = await Promise.all([
+          new Promise((resolve) => {
+            const reader =
+              new FileReader();
+            reader.onloadend = () => {
+              resolve(
+                reader.result.split(
+                  ',',
+                )[1],
+              );
+            };
+            reader.readAsDataURL(
+              firebaseImageBlob,
+            );
+          }),
+          imageToBase64(
+            `file://${capturedPhoto.path}`,
+          ),
+        ]);
 
-      clearInterval(progressInterval);
-      setUploadProgress(1); // Set to 100% when complete
+        // Fix the issue with directly reassigning result
+        let result = await compareFaces(
+          sourceBase64,
+          targetBase64,
+        );
 
-      const onPhotoVerified = route.params?.onPhotoVerified;
-      if (onPhotoVerified) {
-        onPhotoVerified(result.matched && result.similarity >= 70);
-        setUploadStatus('verified');
-      } else {
+        console.log(
+          'Face comparison result:',
+          result,
+        );
+
+        clearInterval(progressInterval);
+        setUploadProgress(1); // Set to 100% when complete
+
+        const onPhotoVerified =
+          route.params?.onPhotoVerified;
+        if (onPhotoVerified) {
+          onPhotoVerified(
+            result.matched &&
+              result.similarity >= 70,
+          );
+          setUploadStatus('verified');
+        } else {
+          setUploadStatus(
+            'notverified',
+          );
+          Alert.alert(
+            'Verification Failed',
+            `Photo did not match (${
+              result.similarity?.toFixed(
+                1,
+              ) || 'unknown'
+            }% similarity)`,
+          );
+        }
+      } catch (error) {
+        console.error(
+          'Error in handleAcceptAttendance:',
+          error,
+        );
         setUploadStatus('notverified');
         Alert.alert(
-          'Verification Failed',
-          `Photo did not match (${
-            result.similarity?.toFixed(1) || 'unknown'
-          }% similarity)`,
+          'Error',
+          error.message ||
+            'Failed to complete the process. Please try again.',
         );
+      } finally {
+        setIsUploading(false);
       }
-    } catch (error) {
-      console.error('Error in handleAcceptAttendance:', error);
-      setUploadStatus('notverified');
-      Alert.alert(
-        'Error',
-        error.message || 'Failed to complete the process. Please try again.',
-      );
-    } finally {
-      setIsUploading(false);
-    }
-  };
+    };
 
   const handleOK = () => {
     // navigation.navigate('StudentViewReportScreen');
@@ -220,26 +329,49 @@ const CameraScreen = ({route}) => {
 
   if (!device) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#fff" />
-        <Text style={styles.loadingText}>Loading camera...</Text>
+      <View
+        style={styles.loadingContainer}
+      >
+        <ActivityIndicator
+          size="large"
+          color="#fff"
+        />
+        <Text
+          style={styles.loadingText}
+        >
+          Loading camera...
+        </Text>
       </View>
     );
   }
 
   if (permissionStatus !== 'granted') {
     return (
-      <View style={styles.permissionContainer}>
-        <Text style={styles.permissionText}>
+      <View
+        style={
+          styles.permissionContainer
+        }
+      >
+        <Text
+          style={styles.permissionText}
+        >
           {permissionStatus === 'denied'
             ? 'Camera permission denied. Please enable it in settings.'
             : 'Requesting camera permission...'}
         </Text>
-        {permissionStatus === 'denied' && (
+        {permissionStatus ===
+          'denied' && (
           <TouchableOpacity
-            style={styles.permissionButton}
-            onPress={checkPermissions}>
-            <Text style={styles.permissionButtonText}>
+            style={
+              styles.permissionButton
+            }
+            onPress={checkPermissions}
+          >
+            <Text
+              style={
+                styles.permissionButtonText
+              }
+            >
               Request Permission Again
             </Text>
           </TouchableOpacity>
@@ -250,26 +382,44 @@ const CameraScreen = ({route}) => {
 
   if (uploadStatus === 'uploading') {
     return (
-      <View style={styles.statusContainer}>
-        <View style={styles.progressBarContainer}>
+      <View
+        style={styles.statusContainer}
+      >
+        <View
+          style={
+            styles.progressBarContainer
+          }
+        >
           <Animated.View
             style={[
               styles.progressBarFill,
               {
-                width: progressAnimation.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: ['0%', '100%'],
-                }),
+                width:
+                  progressAnimation.interpolate(
+                    {
+                      inputRange: [
+                        0, 1,
+                      ],
+                      outputRange: [
+                        '0%',
+                        '100%',
+                      ],
+                    },
+                  ),
               },
             ]}
           />
         </View>
         <Text style={styles.statusText}>
           {uploadProgress < 1
-            ? `Uploading... ${Math.round(uploadProgress * 100)}%`
+            ? `Uploading... ${Math.round(
+                uploadProgress * 100,
+              )}%`
             : 'Finalizing...'}
         </Text>
-        <Text style={styles.statusSubtext}>
+        <Text
+          style={styles.statusSubtext}
+        >
           {uploadProgress < 1
             ? 'Please wait while we upload your image'
             : 'Almost done!'}
@@ -280,27 +430,47 @@ const CameraScreen = ({route}) => {
 
   if (uploadStatus === 'processing') {
     return (
-      <View style={styles.statusContainer}>
-        <View style={styles.progressBarContainer}>
+      <View
+        style={styles.statusContainer}
+      >
+        <View
+          style={
+            styles.progressBarContainer
+          }
+        >
           <Animated.View
             style={[
               styles.progressBarFill,
               {
-                width: progressAnimation.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: ['0%', '100%'],
-                }),
+                width:
+                  progressAnimation.interpolate(
+                    {
+                      inputRange: [
+                        0, 1,
+                      ],
+                      outputRange: [
+                        '0%',
+                        '100%',
+                      ],
+                    },
+                  ),
               },
             ]}
           />
         </View>
         <Text style={styles.statusText}>
           {uploadProgress < 1
-            ? `Marking attendance... ${Math.round(uploadProgress * 100)}%`
+            ? `Marking attendance... ${Math.round(
+                uploadProgress * 100,
+              )}%`
             : 'Finalizing...'}
         </Text>
-        <Text style={styles.statusSubtext}>
-          {uploadProgress < 0.9 ? 'Verifying your details' : 'Almost done!'}
+        <Text
+          style={styles.statusSubtext}
+        >
+          {uploadProgress < 0.9
+            ? 'Verifying your details'
+            : 'Almost done!'}
         </Text>
       </View>
     );
@@ -308,42 +478,102 @@ const CameraScreen = ({route}) => {
 
   if (uploadStatus === 'verified') {
     return (
-      <View style={styles.statusContainer}>
-        <View style={styles.verifiedAnimation}>
-          <View style={styles.checkmarkCircle}>
-            <Text style={styles.verifiedIcon}>✓</Text>
+      <View
+        style={styles.statusContainer}
+      >
+        <View
+          style={
+            styles.verifiedAnimation
+          }
+        >
+          <View
+            style={
+              styles.checkmarkCircle
+            }
+          >
+            <Text
+              style={
+                styles.verifiedIcon
+              }
+            >
+              ✓
+            </Text>
           </View>
         </View>
-        <Text style={styles.verifiedText}>Attendance Verified</Text>
-        <Text style={styles.verifiedSubtext}>
-          Your attendance has been successfully recorded
+        <Text
+          style={styles.verifiedText}
+        >
+          Attendance Verified
+        </Text>
+        <Text
+          style={styles.verifiedSubtext}
+        >
+          Your attendance has been
+          successfully recorded
         </Text>
         <TouchableOpacity
           style={styles.okButton}
           onPress={handleOK}
-          activeOpacity={0.7}>
-          <Text style={styles.okButtonText}>Done</Text>
+          activeOpacity={0.7}
+        >
+          <Text
+            style={styles.okButtonText}
+          >
+            Done
+          </Text>
         </TouchableOpacity>
       </View>
     );
   }
   if (uploadStatus === 'notverified') {
     return (
-      <View style={styles.statusContainer}>
-        <View style={styles.notVerifiedAnimation}>
-          <View style={styles.crossCircle}>
-            <Text style={styles.notVerifiedIcon}>✕</Text>
+      <View
+        style={styles.statusContainer}
+      >
+        <View
+          style={
+            styles.notVerifiedAnimation
+          }
+        >
+          <View
+            style={styles.crossCircle}
+          >
+            <Text
+              style={
+                styles.notVerifiedIcon
+              }
+            >
+              ✕
+            </Text>
           </View>
         </View>
-        <Text style={styles.notVerifiedText}>Attendance Not Verified</Text>
-        <Text style={styles.notVerifiedSubtext}>
-          Photo did not match our records
+        <Text
+          style={styles.notVerifiedText}
+        >
+          Attendance Not Verified
+        </Text>
+        <Text
+          style={
+            styles.notVerifiedSubtext
+          }
+        >
+          Photo did not match our
+          records
         </Text>
         <TouchableOpacity
           style={styles.tryAgainButton}
-          onPress={() => navigation.goBack()}
-          activeOpacity={0.7}>
-          <Text style={styles.tryAgainButtonText}>Try Again</Text>
+          onPress={() =>
+            navigation.goBack()
+          }
+          activeOpacity={0.7}
+        >
+          <Text
+            style={
+              styles.tryAgainButtonText
+            }
+          >
+            Try Again
+          </Text>
         </TouchableOpacity>
       </View>
     );
@@ -352,29 +582,61 @@ const CameraScreen = ({route}) => {
   return (
     <View style={styles.container}>
       {capturedPhoto ? (
-        <View style={styles.previewContainer}>
+        <View
+          style={
+            styles.previewContainer
+          }
+        >
           <Image
-            source={{uri: `file://${capturedPhoto.path}`}}
+            source={{
+              uri: `file://${capturedPhoto.path}`,
+            }}
             style={styles.previewImage}
             resizeMode="contain"
           />
-          <View style={styles.previewControls}>
+          <View
+            style={
+              styles.previewControls
+            }
+          >
             <TouchableOpacity
-              style={[styles.actionButton, styles.retakeButton]}
+              style={[
+                styles.actionButton,
+                styles.retakeButton,
+              ]}
               onPress={handleRetake}
-              disabled={isUploading}>
-              <Text style={styles.buttonText}>Retake</Text>
+              disabled={isUploading}
+            >
+              <Text
+                style={
+                  styles.buttonText
+                }
+              >
+                Retake
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.actionButton, styles.acceptButton]}
+              style={[
+                styles.actionButton,
+                styles.acceptButton,
+              ]}
               onPress={
-                isFirstTime ? handleAcceptFirstTime : handleAcceptAttendance
+                isFirstTime
+                  ? handleAcceptFirstTime
+                  : handleAcceptAttendance
               }
-              disabled={isUploading}>
+              disabled={isUploading}
+            >
               {isUploading ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text style={styles.buttonText}>✓ Accept</Text>
+                <Text
+                  style={
+                    styles.buttonText
+                  }
+                >
+                  ✓ Accept
+                </Text>
               )}
             </TouchableOpacity>
           </View>
@@ -394,11 +656,22 @@ const CameraScreen = ({route}) => {
             isActive={isActive}
             photo={true}
           />
-          <View style={styles.captureControls}>
+          <View
+            style={
+              styles.captureControls
+            }
+          >
             <TouchableOpacity
-              style={styles.captureButton}
-              onPress={capturePhoto}>
-              <View style={styles.captureButtonInner} />
+              style={
+                styles.captureButton
+              }
+              onPress={capturePhoto}
+            >
+              <View
+                style={
+                  styles.captureButtonInner
+                }
+              />
             </TouchableOpacity>
           </View>
           {/* Back Button in Camera Mode
@@ -469,7 +742,8 @@ const styles = StyleSheet.create({
     width: 70,
     height: 70,
     borderRadius: 35,
-    backgroundColor: 'rgba(255,255,255,0.3)',
+    backgroundColor:
+      'rgba(255,255,255,0.3)',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 3,
@@ -545,7 +819,8 @@ const styles = StyleSheet.create({
     width: 150,
     height: 150,
     borderRadius: 100,
-    backgroundColor: 'rgba(108, 99, 255, 0.2)',
+    backgroundColor:
+      'rgba(108, 99, 255, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 30,
@@ -585,7 +860,10 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     marginTop: 20,
     shadowColor: '#6C63FF',
-    shadowOffset: {width: 0, height: 4},
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 5,
@@ -601,7 +879,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
     borderRadius: 25,
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
     shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 3,
@@ -622,13 +903,17 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor:
+      'rgba(255,255,255,0.2)',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 3,
     borderColor: '#FFFFFF',
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 4},
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 5,
@@ -722,7 +1007,8 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 20,
     left: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor:
+      'rgba(0, 0, 0, 0.5)',
     paddingVertical: 10,
     paddingHorizontal: 15,
     borderRadius: 5,
