@@ -81,7 +81,7 @@ const AppNavigator = () => {
           <Stack.Screen
             name="CameraScreen"
             component={CameraScreen}
-            options={{title: 'Camera'}}
+            options={{title: 'Camera', headerLeft: () => null}}
           />
         </Stack.Navigator>
       </NavigationContainer>

@@ -162,7 +162,6 @@ const CameraScreen = ({route}) => {
     try {
       setIsUploading(true);
 
-
       setUploadStatus('processing');
       const progressInterval = startProgressInterval();
 
@@ -379,6 +378,12 @@ const CameraScreen = ({route}) => {
               )}
             </TouchableOpacity>
           </View>
+          {/* Back Button in Preview Mode */}
+          {/* <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}>
+            <Text style={styles.backButtonText}>Back</Text>
+          </TouchableOpacity> */}
         </View>
       ) : (
         <>
@@ -396,6 +401,12 @@ const CameraScreen = ({route}) => {
               <View style={styles.captureButtonInner} />
             </TouchableOpacity>
           </View>
+          {/* Back Button in Camera Mode
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}>
+            <Text style={styles.backButtonText}>Back</Text>
+          </TouchableOpacity> */}
         </>
       )}
     </View>
@@ -497,6 +508,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#4CAF50',
   },
   buttonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  backButtonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
@@ -697,6 +713,20 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#A0A0A0',
     textAlign: 'center',
+  },
+  buttonText: {
+    color: 'white',
+    fontSize: 16,
+  },
+  backButton: {
+    position: 'absolute',
+    top: 20,
+    left: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 5,
+    zIndex: 1,
   },
 });
 

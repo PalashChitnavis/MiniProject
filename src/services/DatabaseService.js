@@ -1,5 +1,7 @@
 import firestore from '@react-native-firebase/firestore';
 import deviceInfo from 'react-native-device-info';
+import {firebase} from '@react-native-firebase/app';
+import '@react-native-firebase/installations';
 
 export const createUser = async user => {
   try {
@@ -19,7 +21,8 @@ export const createUser = async user => {
     // Get device unique ID - handle potential failures
     let deviceId;
     try {
-      deviceId = await deviceInfo.getUniqueId();
+      // deviceId = await deviceInfo.getUniqueId();
+      deviceId = await firebase.installations().getId();
     } catch (deviceError) {
       console.warn('Could not get device ID:', deviceError.message);
       deviceId = 'unknown_device'; // Fallback value
@@ -591,17 +594,34 @@ export const teacherCancelsAttendance = async (
         }
 
         // Update the teacher's attendance record
+        // transaction.update(teacherAttendanceRef, {
+        //   [`classes.${teacherClassIndex}.present`]:
+        //     firestore.FieldValue.arrayRemove(studentEmail),
+        // });
+
+        // Remove studentEmail from present array manually
+        const updatedPresent = teacherClass.present.filter(
+          email => email !== studentEmail,
+        );
+
+        // Replace the present array with the updated one in the specific class object
+        const updatedTeacherClasses = [...teacherClasses];
+        updatedTeacherClasses[teacherClassIndex] = {
+          ...teacherClass,
+          present: updatedPresent,
+        };
+
+        // Update the entire classes array
         transaction.update(teacherAttendanceRef, {
-          [`classes.${teacherClassIndex}.present`]:
-            firestore.FieldValue.arrayRemove(studentEmail),
+          classes: updatedTeacherClasses,
         });
 
         // Remove the entire date record if no students left
-        if (presentStudents.length === 1) {
-          transaction.update(teacherAttendanceRef, {
-            classes: firestore.FieldValue.arrayRemove(teacherClass),
-          });
-        }
+        // if (presentStudents.length === 1) {
+        //   transaction.update(teacherAttendanceRef, {
+        //     classes: firestore.FieldValue.arrayRemove(teacherClass),
+        //   });
+        // }
       });
     } catch (transactionError) {
       console.error('Transaction failed:', transactionError.message);
